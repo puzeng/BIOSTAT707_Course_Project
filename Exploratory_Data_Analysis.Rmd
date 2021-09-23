@@ -21,9 +21,5 @@ library(dplyr)
 ```{r}
 x = covid19(level = 1)[1:100000, ]
 
-y = x %>% filter(vaccines > 100)
-
-z = x %>% filter(vaccines > 0)
-
 ```
 
