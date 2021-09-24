@@ -20,6 +20,5 @@ library(dplyr)
 
 ```{r}
 x = covid19(level = 1)[1:100000, ]
-
 ```
 
