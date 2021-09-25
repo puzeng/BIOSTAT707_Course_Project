@@ -1,0 +1,59 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+wb <- c("gdp" = "NY.GDP.MKTP.CD", "hosp_beds" = "SH.MED.BEDS.ZS")
+y  <- covid19(wb = wb)
+```
+
+```{r}
+wb <- c("gdp" = "NY.GDP.MKTP.CD", "hosp_beds" = "SH.MED.BEDS.ZS")
+gmr <- "https://www.gstatic.com/covid19/mobility/Global_Mobility_Report.csv"
+amr <- "https://covid19-static.cdn-apple.com/covid19-mobility-data/"
+amr <- paste0(amr, "2116HotfixDev26/v3/en-us/applemobilitytrends-2021-09-17.csv")
+x  <- covid19(wb = wb, gmr = gmr, amr = amr)
+```
+
+## start
+
+```{r}
+library("COVID19")
+x <- covid19(level = 1)
+interest_2021 <- read.csv("interest_2021.csv",header=T)
+colnames(interest_2021)<- c("Country","Interest_Rate_2021",	"Previous",	"Year",	"Month",	"Unit")
+interest_2020 <- read.csv("interest_2020.csv",header=T)
+colnames(interest_2020)<- c("Country","Interest_Rate_2020","Year")
+```
+
+```{r}
+library(countrycode)    # Country code
+interest_2021$id <- countrycode(interest_2021$Country, 'country.name', 'iso3c')
+interest_2020$id <- countrycode(interest_2020$Country, 'country.name', 'iso3c')
+
+
+library(dplyr)
+join <- left_join(x,interest_2021[,c(7,2)],by="id")
+join <- left_join(join,interest_2020[,c(2,4)],by="id")
+
+```
+
+
+```{r}
+library(lubridate)
+join$year <- year(join$date)
+for (i in 1:122997){
+if (join$year[i]==2021){
+  join$Interest_Rate[i] <- join$Interest_Rate_2021[i]
+}
+else{
+  join$Interest_Rate[i] <- join$Interest_Rate_2020[i]
+}
+}
+```
+
