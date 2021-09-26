@@ -1,0 +1,182 @@
+Country	Last	Previous	Reference	Unit
+Afghanistan	11.2	11.1	Dec/20	%
+Albania	12.1	12.6	Jun/21	%
+Algeria	11.4	11.7	Apr/19	%
+Angola	31.6	30.5	Jun/21	%
+Argentina	9.6	10.2	Jun/21	%
+Armenia	17	16	Mar/21	%
+Australia	4.5	4.6	Aug/21	%
+Austria	6.9	6.7	Aug/21	%
+Azerbaijan	6.27	4.8	Dec/20	%
+Bahamas	25.6	9.5	Dec/20	%
+Bahrain	4.9	4	Dec/20	%
+Bangladesh	5.3	4.2	Dec/20	%
+Barbados	17.2	13.6	Mar/21	%
+Belarus	0.2	0.2	Dec/20	%
+Belgium	5.9	6.2	Jul/21	%
+Belize	13.7	7.7	Dec/20	%
+Benin	2.5	2.3	Dec/20	%
+Bhutan	5	2.7	Dec/20	%
+Bolivia	5.6	3.6	Dec/20	%
+Bosnia and Herzegovina	32.54	32.42	Jul/21	%
+Botswana	23.3	18.2	Dec/20	%
+Brazil	14.1	14.6	Jun/21	%
+Brunei	8.4	6.8	Dec/20	%
+Bulgaria	5	5.2	Jul/21	%
+Burkina Faso	5	4.6	Dec/20	%
+Burundi	0.8	1.4	Dec/20	%
+Cambodia	0.31	2.4	Dec/20	%
+Cameroon	3.6	3.3	Dec/20	%
+Canada	7.1	7.5	Aug/21	%
+Cape Verde	12.3	11.3	Dec/20	%
+Cayman Islands	5.2	3.5	Dec/20	%
+Central African Republic	4.3	4	Dec/20	%
+Chad	2.3	1.9	Dec/20	%
+Chile	8.9	9.5	Jul/21	%
+China	5.1	5.1	Aug/21	%
+Colombia	14.3	14.4	Jul/21	%
+Comoros	8.4	7.7	Dec/20	%
+Costa Rica	18.1	18.5	Jun/21	%
+Croatia	7.3	7.4	Aug/21	%
+Cuba	3.87	1.2	Dec/20	%
+Cyprus	5.2	8.2	Jul/21	%
+Czech Republic	3.6	3.7	Aug/21	%
+Denmark	3.8	3.8	Jul/21	%
+Dominican Republic	8	7.4	Mar/21	%
+East Timor	5.06	3	Dec/20	%
+Ecuador	7.3	6.1	Mar/21	%
+Egypt	7.3	7.4	Jun/21	%
+El Salvador	6.9	6.3	Dec/20	%
+Equatorial Guinea	9.2	8	Dec/20	%
+Eritrea	7.4	6.3	Dec/20	%
+Estonia	6.9	7.1	Jun/21	%
+Ethiopia	19.1	16.9	Dec/18	%
+Euro Area	7.6	7.8	Jul/21	%
+European Union	6.9	7.1	Jul/21	%
+Faroe Islands	1.2	1.3	Jun/21	%
+Fiji	4.8	4.2	Dec/20	%
+Finland	6.5	7.1	Aug/21	%
+France	8	8.1	Jun/21	%
+Gabon	20.5	19.6	Dec/20	%
+Gambia	9.6	8.9	Dec/20	%
+Georgia	18.5	17.6	Dec/20	%
+Germany	3.6	3.7	Jul/21	%
+Ghana	4.5	4.1	Dec/20	%
+Greece	14.2	15	Jul/21	%
+Guatemala	2	2.5	Sep/19	%
+Guinea	4.4	4.1	Dec/20	%
+Guinea Bissau	3.2	2.8	Dec/20	%
+Guyana	15.8	11.9	Dec/20	%
+Haiti	14.5	13.5	Dec/20	%
+Honduras	10.9	5.7	Dec/20	%
+Hong Kong	4.7	5	Aug/21	%
+Hungary	3.9	4.1	Jul/21	%
+Iceland	5.1	5.1	Aug/21	%
+India	7	9.2	Jul/21	%
+Indonesia	6.26	7.07	Mar/21	%
+Iran	9.4	9.5	Dec/20	%
+Iraq	13.74	12.76	Dec/20	%
+Ireland	6.4	6.5	Aug/21	%
+Israel	5	5.1	Jul/21	%
+Italy	9.3	9.4	Jul/21	%
+Ivory Coast	3.5	3.2	Dec/20	%
+Jamaica	8.9	10.7	Mar/21	%
+Japan	2.8	2.9	Jul/21	%
+Jordan	25	24.7	Mar/21	%
+Kazakhstan	4.9	4.9	Jun/21	%
+Kenya	7.2	10.4	Sep/20	%
+Kosovo	27	24.6	Dec/20	%
+Kuwait	2.3	2.41	Dec/20	%
+Kyrgyzstan	3.1	3.1	May/21	%
+Laos	1	0.6	Dec/20	%
+Latvia	7.9	8.1	Jun/21	%
+Lebanon	6.6	6	Dec/20	%
+Lesotho	24.7	23.9	Dec/20	%
+Liberia	2.7	2.8	Dec/20	%
+Libya	18.63	18.56	Dec/20	%
+Liechtenstein	1.9	1.5	Dec/20	%
+Lithuania	12.2	13.1	Aug/21	%
+Luxembourg	5.5	5.6	Aug/21	%
+Macau	2.9	2.9	Jul/21	%
+Macedonia	15.9	16	Jun/21	%
+Madagascar	1.9	1.7	Dec/20	%
+Malawi	6	5.6	Dec/20	%
+Malaysia	4.8	4.8	Jul/21	%
+Maldives	6.4	6.1	Dec/20	%
+Mali	7.5	7.2	Dec/20	%
+Malta	3.9	4.4	Mar/21	%
+Mauritania	10.7	10.1	Dec/20	%
+Mauritius	9.8	10.4	Mar/21	%
+Mexico	4.4	4	Jul/21	%
+Moldova	3.6	4.3	Jun/21	%
+Mongolia	8.4	8.8	Jun/21	%
+Montenegro	23.27	23.58	Aug/21	%
+Morocco	12.8	12.5	Jun/21	%
+Mozambique	25.04	24.37	Dec/17	%
+Myanmar	1.79	0.7	Dec/20	%
+Namibia	33.4	34	Dec/18	%
+Nepal	4.44	2.85	Dec/20	%
+Netherlands	3.2	3.1	Aug/21	%
+New Caledonia	16.5	10.9	Dec/20	%
+New Zealand	4	4.7	Jun/21	%
+Nicaragua	4.9	4.8	Mar/21	%
+Niger	0.7	0.5	Dec/20	%
+Nigeria	33.3	27.1	Dec/20	%
+North Korea	4.7	3.3	Dec/20	%
+Norway	5.1	5	Jun/21	%
+Oman	5	1.8	Dec/20	%
+Pakistan	4.4	4.1	Dec/20	%
+Palestine	26.4	27.8	Jun/21	%
+Panama	18.5	7.1	Dec/20	%
+Papua New Guinea	2.7	2.4	Dec/20	%
+Paraguay	8.6	8.1	Jun/21	%
+Peru	9.5	9.4	Aug/21	%
+Philippines	6.9	8.7	Sep/21	%
+Poland	5.8	5.8	Aug/21	%
+Portugal	6.7	7.1	Jun/21	%
+Puerto Rico	9.1	9.2	Aug/21	%
+Qatar	0.1	0.1	Jun/20	%
+Republic of the Congo	10.3	9.6	Dec/20	%
+Romania	5.1	5	Jul/21	%
+Russia	4.5	4.8	Jul/21	%
+Rwanda	17	20.3	Feb/21	%
+Sao Tome and Principe	13.9	13.1	Dec/20	%
+Saudi Arabia	6.5	7.4	Mar/21	%
+Senegal	22.6	16.7	Mar/21	%
+Serbia	11.1	12.8	Jun/21	%
+Seychelles	4	2.4	Dec/20	%
+Sierra Leone	4.6	4.4	Dec/20	%
+Singapore	2.7	2.9	Jun/21	%
+Slovakia	7.37	7.66	Aug/21	%
+Slovenia	7.3	7.3	Jul/21	%
+South Africa	34.4	32.6	Jun/21	%
+South Korea	2.8	3.3	Aug/21	%
+Spain	15.26	15.98	Jun/21	%
+Sri Lanka	5.7	5.2	Mar/21	%
+Sudan	17.7	16.8	Dec/20	%
+Suriname	11.2	7.4	Dec/20	%
+Swaziland	23.4	22.2	Dec/20	%
+Sweden	8.5	8	Aug/21	%
+Switzerland	2.7	2.8	Aug/21	%
+Syria	9	8.2	Dec/20	%
+Taiwan	4.08	4.36	Aug/21	%
+Tajikistan	7.5	2.1	Dec/20	%
+Tanzania	9.5	9.6	Dec/20	%
+Thailand	1.9	1.96	Jun/21	%
+Togo	4.1	3.6	Dec/20	%
+Trinidad and Tobago	5.1	4.2	Jun/20	%
+Tunisia	17.8	17.4	Mar/21	%
+Turkey	12	10.6	Jul/21	%
+Turkmenistan	4.38	3.9	Dec/20	%
+Uganda	2.44	1.8	Dec/20	%
+Ukraine	9.3	10.5	Jun/21	%
+United Arab Emirates	5	2.64	Dec/20	%
+United Kingdom	4.6	4.7	Jul/21	%
+United States	5.2	5.4	Aug/21	%
+Uruguay	10.4	9.4	Jul/21	%
+Uzbekistan	10.2	10.5	Mar/21	%
+Venezuela	6.4	7.3	Dec/18	%
+Vietnam	2.62	2.42	Jun/21	%
+Yemen	13.42	12.9	Dec/20	%
+Zambia	12.2	13.2	Dec/20	%
+Zimbabwe	5.7	5	Dec/20	%
