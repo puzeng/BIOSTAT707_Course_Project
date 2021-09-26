@@ -1,0 +1,148 @@
+---
+title: "Merge Exchange Rate to COVID Dataset"
+author: "Peijin Wang"
+date: "9/23/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+
+```{r}
+library(tidyverse)
+library(COVID19)
+
+library(countrycode)    # Country code
+
+# How to install currencycode package:
+# install.packages("remotes")
+# remotes::install_github("KKulma/currencycode")
+
+library(currencycode)   # Currency code
+library(reshape2)       # Transform fat-table to long-table
+```
+
+### Base data set (COVID19-country)
+```{r}
+covid = covid19(level = 1)
+```
+
+### Exchange rate data sets
+```{r}
+# Data set 1
+dt_exchange1 = read.csv(here::here("fxdata-1.csv"), header = T,skip = 1)[,-c(1,3)]
+
+colnames(dt_exchange1) = c("date","USD","CAD","EUR","GBP","JPY")
+dt_exchange1$date = as.Date(dt_exchange1$date, format = "%Y/%m/%d")
+
+
+# Data set 2
+dt_exchange2 = read.csv(here::here("fxdata-2.csv"), header = T,skip = 1)[,-c(1,3)]
+
+colnames(dt_exchange2) = c("date","DZD","ARS","AUD","ATS","BSD","BHD","BBD","BEF","BMD","BRL")
+dt_exchange2$date = as.Date(as.character(dt_exchange2$date), format = "%Y/%m/%d")
+
+
+# Data set 3
+dt_exchange3 = read.csv(here::here("fxdata-3.csv"), header = T,skip = 1)[,-c(1,3)]
+
+colnames(dt_exchange3) = c("date","GBP","BGN","CAD","CLP","CNY","COP","HRK","CYP", "CZK", "DKK")
+dt_exchange3$date = as.Date(as.character(dt_exchange3$date), format = "%Y/%m/%d")
+
+
+# Data set 4
+dt_exchange4 = read.csv(here::here("fxdata-4.csv"), header = T,skip = 1)[,-c(1,3)]
+
+colnames(dt_exchange4) = c("date","NLG","XCD","EGP","EEK","EUR","FJD","FIM","FRF","XAF","XPF")
+dt_exchange4$date = as.Date(as.character(dt_exchange4$date), format = "%Y/%m/%d")
+
+
+# Data set 5
+dt_exchange5 = read.csv(here::here("fxdata-5.csv"), header = T,skip = 1)[,-c(1,3)]
+
+colnames(dt_exchange5) = c("date","DEM","GHS","XAU","GRD","HNL","HKD","HUF","ISK","INR"," IDR")
+dt_exchange5$date = as.Date(as.character(dt_exchange5$date), format = "%Y/%m/%d")
+
+
+# Data set 6
+dt_exchange6 = read.csv(here::here("fxdata-6.csv"), header = T,skip = 1)[,-c(1,3)]
+
+colnames(dt_exchange6) = c("date","IEP","ILS","ITL","JMD","JPY","JOD","KWD","LBP","LUF","MYR")
+dt_exchange6$date = as.Date(as.character(dt_exchange6$date), format = "%Y/%m/%d")
+
+
+# Data set 7
+dt_exchange7 = read.csv(here::here("fxdata-7.csv"), header = T,skip = 1)[,-c(1,3)]
+
+colnames(dt_exchange7) = c("date","MTL","MXN","MAD","NZD","NOK","XCB","XCT","PKR","PAB","PEN")
+dt_exchange7$date = as.Date(as.character(dt_exchange7$date), format = "%Y/%m/%d")
+
+
+# Data set 8
+dt_exchange8 = read.csv(here::here("fxdata-8.csv"), header = T,skip = 1)[,-c(1,3)]
+
+colnames(dt_exchange8) = c("date","PHP","XPT","PLN","PTE","RON","RUB","SAR","RSD","XAG","SGD")
+dt_exchange8$date = as.Date(as.character(dt_exchange8$date), format = "%Y/%m/%d")
+
+
+# Data set 9
+dt_exchange9 = read.csv(here::here("fxdata-9.csv"), header = T,skip = 1)[,-c(1,3)]
+
+colnames(dt_exchange9) = c("date","SKK","SIT","ZAR","KRW","ESP","LKR","SDD","SEK","CHF")
+dt_exchange9$date = as.Date(as.character(dt_exchange9$date), format = "%Y/%m/%d")
+
+
+# Data set 10
+dt_exchange10 = read.csv(here::here("fxdata-10.csv"), header = T,skip = 1)[,-c(1,3)]
+
+colnames(dt_exchange10) = c("date","TWD","THB","TTD","TND","TRY","AED","USD","UYU","VEF","VND")
+dt_exchange10$date = as.Date(as.character(dt_exchange10$date), format = "%Y/%m/%d")
+```
+
+
+```{r}
+# Merge exchange rate of all countries
+dt_exchange = dt_exchange1 %>% 
+  merge(dt_exchange2, by = "date") %>% 
+  merge(dt_exchange3, by = "date") %>% 
+  merge(dt_exchange4, by = "date") %>% 
+  merge(dt_exchange5, by = "date") %>% 
+  merge(dt_exchange6, by = "date") %>% 
+  merge(dt_exchange7, by = "date") %>% 
+  merge(dt_exchange8, by = "date") %>% 
+  merge(dt_exchange9, by = "date") %>% 
+  merge(dt_exchange10, by = "date") %>% 
+  rename_at(vars(ends_with(".x")),~str_replace(., "\\..$","")) %>% 
+  select_at(vars(-ends_with(".y")))
+
+# Transform fat table into long table
+dt_exchange$ID = row.names(dt_exchange)
+dt_exchange_long = melt(dt_exchange, id.vars = "date")
+
+dt_exchange_long$id = countrycode(dt_exchange_long$variable,origin = "currency_code", destination = "countrycode_3", custom_dict = currency_list)
+
+dt_exchange_long = dt_exchange_long %>% 
+  mutate(id = id, date = date, exchange = value) %>% 
+  select(id, date, exchange)
+
+```
+
+```{r}
+# Add exchange rate to COVID19 data set
+# COVID19 data set is considered as base table
+covid_exchange = left_join(x = covid, y = dt_exchange_long, 
+                           by = c("id","date"))
+```
+
+```{r}
+# Number of country with exchange rate
+tmp = covid_exchange %>% select(id, exchange) %>% na.omit()
+length(unique(tmp$id))
+```
+
