@@ -1,0 +1,88 @@
+---
+title: "Exploratory_Data_Analysis"
+author: "Pu Zeng"
+date: "9/14/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+
+```{r message=FALSE, warning=FALSE}
+#install.packages("COVID19")
+library("COVID19")
+library(magrittr)
+library(tidyverse)
+library(dplyr)
+library(readxl)
+library(stats)
+library(reshape2)
+library(countrycode)
+library(lubridate)
+```
+
+```{r clean the GDP df}
+covid19_df = covid19(level = 1)
+
+#rank(covid19_df$date)[1:20]
+
+GDP_df = read_excel("gdp-per capita.xls")
+
+selected_cols = colnames(GDP_df)[c(1, 42, 43)]
+
+GDP_df = GDP_df[selected_cols]
+
+GDP_df = melt(GDP_df, id.vars = 'GDP per capita, current prices\n (U.S. dollars per capita)',
+              variable.name = "date")
+colnames(GDP_df) = c('administrative_area_level_1',
+                     'date',
+                     'GDP')
+GDP_df = na.omit(GDP_df)
+
+GDP_df$iso_code = countrycode(GDP_df$administrative_area_level_1,
+                       origin = 'country.name',
+                       destination = 'iso3c')
+
+#filter those GDP by region
+GDP_df = na.omit(GDP_df)
+```
+
+```{r expand to daily data}
+
+list_dates_2020 = seq(min(covid19_df$date),
+    as.Date("2020-12-31"),
+    'days')
+
+list_dates_2021 = seq(as.Date("2021-01-01"), max(covid19_df$date), 'days')
+
+GDP_df_2020 = GDP_df %>% 
+  filter(date == "2020") %>% 
+  crossing(Date = list_dates_2020)
+
+GDP_df_2021 = GDP_df %>% 
+  filter(date == "2021") %>% 
+  crossing(Date = list_dates_2021)
+
+
+GDP_df = rbind.data.frame(GDP_df_2020,
+                 GDP_df_2021)
+
+GDP_df = within(GDP_df, rm('date'))
+
+colnames(GDP_df)[colnames(GDP_df) == "Date"] = "date"
+
+```
+
+```{r merge GDP with covid19}
+covid19_df = covid19_df %>% 
+  left_join(GDP_df, by = c('administrative_area_level_1', 'date'))
+
+write_csv(covid19_df, 'covid19_GDP.csv')
+```
+
