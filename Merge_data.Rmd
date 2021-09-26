@@ -1,0 +1,60 @@
+---
+title: "Merge_datasets"
+author: "Peijin Wang"
+date: "9/26/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(here)
+```
+
+
+```{r}
+exchange = read.csv(here("Seperate_data/covid_exchange.csv"))[,c("id","date","exchange")]
+exchange$date = as.Date(as.character(exchange$date), format = "%Y-%m-%d")
+
+
+GDP = read.csv(here("Seperate_data/covid19_GDP.csv"))[,c("id","date","GDP")]
+GDP$date = as.Date(as.character(GDP$date), format = "%Y-%m-%d")
+
+
+tmp = read.csv(here("Seperate_data/temperature.csv"))[,c("id","date","tmp")]
+tmp$date = as.Date(as.character(tmp$date), format = "%Y-%m-%d")
+
+
+unemp = read.csv(here("Seperate_data/covid19_unemployment.csv"))[,c("id","date","unemployment")]
+unemp$date = as.Date(as.character(unemp$date), format = "%Y-%m-%d")
+
+
+interest = read.csv(here("Seperate_data/covid19_interest_rate.csv"),
+                    na.strings = c('-',"NA"))[,c("id","date","Interest_Rate")]
+interest$date = as.Date(as.character(interest$date), format = "%Y-%m-%d")
+
+interest = interest %>% filter(id != "COG")
+
+```
+
+```{r}
+covid = covid19(level = 1)
+```
+
+```{r}
+covid_full = covid %>% 
+  left_join(exchange, by = c("id","date")) %>% 
+  left_join(GDP, by = c("id","date")) %>% 
+  left_join(interest, by = c("id","date")) %>% 
+  left_join(tmp, by = c("id","date")) %>% 
+  left_join(unemp, by = c("id","date"))
+```
+
+
+```{r}
+write.csv(covid_full, "covid_full.csv")
+```
+
