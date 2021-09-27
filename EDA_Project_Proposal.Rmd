@@ -1,0 +1,198 @@
+---
+title: "EDA_Project_Proposal"
+author: "Pu Zeng"
+date: "9/26/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(magrittr)
+library(tidyverse)
+library(dplyr)
+library(readxl)
+library(stats)
+library(reshape2)
+library(countrycode)
+library(lubridate)
+library(ggplot2)
+library(Hmisc)
+```
+
+```{r load full datasets}
+covid19_df = read.csv("covid_full.csv")
+
+drop_cols = c("X",
+              "iso_alpha_3",
+              "iso_alpha_2",
+              "iso_numeric",
+              "currency",
+              "administrative_area_level",
+              "administrative_area_level_2",
+              "administrative_area_level_3" ,
+              "latitude",
+              "longitude",
+              "key",
+              "key_alpha_2",
+              "key_numeric",
+              "key_google_mobility",
+              "key_apple_mobility",
+              "key_jhu_csse",
+              "foreign_key",
+              "foreign_key_type")
+
+covid19_df = covid19_df[, !names(covid19_df) %in% drop_cols]
+#divide by 10 for temperature
+covid19_df$tmp = covid19_df$tmp/10
+
+#transform policy measures variables into factor variables
+covid19_df$school_closing = as.factor(covid19_df$school_closing)
+
+covid19_df$workplace_closing = as.factor(covid19_df$workplace_closing)
+
+covid19_df$cancel_events = as.factor(covid19_df$cancel_events)
+
+covid19_df$gatherings_restrictions = as.factor(covid19_df$gatherings_restrictions)
+
+covid19_df$transport_closing = as.factor(covid19_df$transport_closing)
+
+covid19_df$stay_home_restrictions = as.factor(covid19_df$stay_home_restrictions)
+
+covid19_df$internal_movement_restrictions = as.factor(covid19_df$internal_movement_restrictions)
+
+covid19_df$international_movement_restrictions = as.factor(covid19_df$international_movement_restrictions)
+
+covid19_df$information_campaigns = as.factor(covid19_df$information_campaigns)
+
+covid19_df$testing_policy = as.factor(covid19_df$testing_policy)
+
+covid19_df$contact_tracing = as.factor(covid19_df$contact_tracing)
+```
+
+```{r  EDA for Policy in categorical}
+policy_measures_cate = covid19_df %>% 
+  select_if(is.factor)
+
+policy_measures_cate$Index_Col = c(1: nrow(policy_measures_cate))
+policy_measures_cate = melt(policy_measures_cate, 
+                       id.vars = "Index_Col", 
+                       variable.name = "Policy_Measures")
+
+policy_measures_cate$Policy_Measures = gsub("_", " ", policy_measures_cate$Policy_Measures)
+
+# policy_measure_labels = unique(policy_measures$Policy_Measures)
+# names(policy_measure_labels) = c("School closing",
+#                                  "Workplace closing",
+#                                  "Cancel events", "Gatherings restrictions",
+#                                  "Transport movement restrictions",
+#                                  "Stay home restrictions",
+#                                  "Internal movement restrictions",
+#                                  "International movement restrictions",
+#                                  "Information campaigns",
+#                                  "Testing policy",
+#                                  "Contact tracing")
+
+
+ggplot(data = policy_measures_cate,
+       aes( x = value)) +
+  geom_bar(alpha = 0.75) +
+  facet_wrap(~Policy_Measures,
+             scales = "free_x") +
+  theme_bw() +
+  theme(axis.title.x = element_text(face = 'bold'),
+        axis.title.y = element_text(face = 'bold'),
+        strip.text.x = element_text(face = 'bold'))
+```
+```{r EDA for policy measures in continuous}
+stringency_index_plot = covid19_df %>% filter(!is.na(stringency_index))
+
+
+stringency_index_plot$date = ymd(stringency_index_plot$date)
+
+ggplot(stringency_index_plot, 
+       aes(x = date,
+           y = stringency_index,
+           colour = id)) + 
+         geom_line() +
+  scale_y_continuous(limits = c(0,100)) +
+  scale_x_date(date_labels = "%Y-%m-%d",
+               breaks = ymd(c("2020-01-01","2020-07-01", "2020-12-31",
+                                  "2021-07-01"))) +
+  labs(x = "Date",
+       y = "Stringency index") +
+  theme_bw() +
+  theme(legend.position = "none",
+        axis.title.x = element_text(face = "bold"),
+        axis.title.y = element_text(face = "bold"))
+
+```
+
+```{r EDA for temperature}
+temp_index_plot = covid19_df %>% filter(!is.na(tmp))
+
+
+temp_index_plot$date = ymd(temp_index_plot$date)
+
+ggplot(temp_index_plot, 
+       aes(x = date,
+           y = tmp,
+           colour = id)) + 
+         geom_line(alpha = 0.2) +
+  scale_y_continuous(limits = c(-40,50)) +
+  scale_x_date(date_labels = "%Y-%m-%d",
+               breaks = ymd(c("2020-01-01","2020-07-01", "2020-12-31",
+                                  "2021-07-01"))) +
+  labs(x = "Date",
+       y = "Temperature (\u00B0C)") +
+  theme_bw() +
+  theme(legend.position = "none",
+        axis.title.x = element_text(face = "bold"),
+        axis.title.y = element_text(face = "bold"))
+```
+```{r EDA for population}
+population_plot = covid19_df %>% filter(!is.na(population)) %>% select(id, date, population)
+
+
+population_plot$date = ymd(population_plot$date)
+
+ggplot(population_plot, 
+        aes(y = population,
+            colour = id)) + 
+  geom_bar(alpha = 0.6) +
+  labs(x = "Countries",
+       y = "Population") +
+  theme_bw() +
+  theme(legend.position = "none",
+         axis.title.x = element_text(face = "bold"),
+         axis.title.y = element_text(face = "bold"))
+
+ggplot(population_plot %>% unique(),
+       aes(x = id,
+           y = population)) +
+  geom_bar(stat = 'identity') +
+  theme_bw() +
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 70))
+
+# ggplot(population_plot, 
+#        aes(x = date,
+#            y = population,
+#            colour = id)) + 
+#          geom_line(alpha = 0.6) +
+#   scale_x_date(date_labels = "%Y-%m-%d",
+#                breaks = ymd(c("2020-01-01","2020-07-01", "2020-12-31",
+#                                   "2021-07-01"))) +
+#   labs(x = "Date",
+#        y = "Population") +
+#   theme_bw() +
+#   theme(legend.position = "none",
+#         axis.title.x = element_text(face = "bold"),
+#         axis.title.y = element_text(face = "bold"))
+```
