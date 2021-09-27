@@ -27,7 +27,7 @@ library(countrycode)
 library(lubridate)
 ```
 
-```{r clean the GDP df}
+```{r clean the GDP df, message=FALSE, warning=FALSE}
 covid19_df = covid19(level = 1)
 
 #rank(covid19_df$date)[1:20]
@@ -75,6 +75,7 @@ GDP_df = rbind.data.frame(GDP_df_2020,
 
 GDP_df = within(GDP_df, rm('date'))
 
+
 colnames(GDP_df)[colnames(GDP_df) == "Date"] = "date"
 
 ```
@@ -83,6 +84,5 @@ colnames(GDP_df)[colnames(GDP_df) == "Date"] = "date"
 covid19_df = covid19_df %>% 
   left_join(GDP_df, by = c('administrative_area_level_1', 'date'))
 
-write_csv(covid19_df, 'covid19_GDP.csv')
+#write_csv(covid19_df, 'covid19_GDP.csv')
 ```
-
