@@ -162,16 +162,6 @@ population_plot = covid19_df %>% filter(!is.na(population)) %>% select(id, date,
 
 population_plot$date = ymd(population_plot$date)
 
-ggplot(population_plot, 
-        aes(y = population,
-            colour = id)) + 
-  geom_bar(alpha = 0.6) +
-  labs(x = "Countries",
-       y = "Population") +
-  theme_bw() +
-  theme(legend.position = "none",
-         axis.title.x = element_text(face = "bold"),
-         axis.title.y = element_text(face = "bold"))
 
 ggplot(population_plot %>% unique(),
        aes(x = id,
@@ -180,6 +170,8 @@ ggplot(population_plot %>% unique(),
   theme_bw() +
   theme(legend.position = "none",
         axis.text.x = element_text(angle = 70))
+
+
 
 # ggplot(population_plot, 
 #        aes(x = date,
