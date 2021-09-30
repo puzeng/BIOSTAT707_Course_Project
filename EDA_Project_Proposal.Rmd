@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
+  dpi = 300,
 	echo = TRUE,
 	message = FALSE,
 	warning = FALSE
@@ -24,6 +25,7 @@ library(countrycode)
 library(lubridate)
 library(ggplot2)
 library(Hmisc)
+library(patchwork)
 ```
 
 ```{r load full datasets}
@@ -80,10 +82,16 @@ covid19_df$contact_tracing = as.factor(covid19_df$contact_tracing)
 policy_measures_cate = covid19_df %>% 
   select_if(is.factor)
 
+policy_measures_cate  %>% 
+  group_by(school_closing) %>% 
+  summarise(count = n(),
+            count_prop = n()/nrow(policy_measures_cate))
+
 policy_measures_cate$Index_Col = c(1: nrow(policy_measures_cate))
 policy_measures_cate = melt(policy_measures_cate, 
                        id.vars = "Index_Col", 
                        variable.name = "Policy_Measures")
+
 
 policy_measures_cate$Policy_Measures = gsub("_", " ", policy_measures_cate$Policy_Measures)
 
@@ -99,6 +107,7 @@ policy_measures_cate$Policy_Measures = gsub("_", " ", policy_measures_cate$Polic
 #                                  "Testing policy",
 #                                  "Contact tracing")
 
+sum(is.na(covid19_df$population))
 
 ggplot(data = policy_measures_cate,
        aes( x = value)) +
@@ -109,28 +118,71 @@ ggplot(data = policy_measures_cate,
   theme(axis.title.x = element_text(face = 'bold'),
         axis.title.y = element_text(face = 'bold'),
         strip.text.x = element_text(face = 'bold'))
+
+
 ```
-```{r EDA for policy measures in continuous}
+
+
+
+
+```{r EDA for policy measures in continuous, fig.height=8, fig.width=5}
 stringency_index_plot = covid19_df %>% filter(!is.na(stringency_index))
 
 
 stringency_index_plot$date = ymd(stringency_index_plot$date)
 
-ggplot(stringency_index_plot, 
+top_five = c("Canada", "Singapore", "Switzerland", "United Kingdom", "United States")
+figure_1 = ggplot(stringency_index_plot %>% 
+         filter(administrative_area_level_1 %in%  top_five), 
        aes(x = date,
            y = stringency_index,
-           colour = id)) + 
+           colour = administrative_area_level_1)) + 
          geom_line() +
   scale_y_continuous(limits = c(0,100)) +
   scale_x_date(date_labels = "%Y-%m-%d",
                breaks = ymd(c("2020-01-01","2020-07-01", "2020-12-31",
                                   "2021-07-01"))) +
+  scale_color_brewer(palette = "Set1") +
   labs(x = "Date",
-       y = "Stringency index") +
+       y = "Stringency index",
+       colour = "Countries") +
   theme_bw() +
-  theme(legend.position = "none",
+  theme(legend.position = "bottom",
+        legend.box = "horizontal",
+        legend.background = element_rect(fill=alpha('white', 0.2)),
+        legend.title=element_text(size = 10), 
+        legend.text=element_text(size = 10),
         axis.title.x = element_text(face = "bold"),
         axis.title.y = element_text(face = "bold"))
+
+bottom_five = c("Chile", "Colombia", "Hungary", "Korea, South", "Pakistan")
+figure_2 = ggplot(stringency_index_plot %>% 
+         filter(administrative_area_level_1 %in%  bottom_five), 
+       aes(x = date,
+           y = stringency_index,
+           colour = administrative_area_level_1)) + 
+         geom_line() +
+  scale_y_continuous(limits = c(0,100)) +
+  scale_x_date(date_labels = "%Y-%m-%d",
+               breaks = ymd(c("2020-01-01","2020-07-01", "2020-12-31",
+                                  "2021-07-01"))) +
+  scale_color_brewer(palette = "Set1") +
+  labs(x = "Date",
+       y = "Stringency index",
+       colour = "Countries") +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        legend.box = "horizontal",
+        legend.background = element_rect(fill=alpha('white', 0.2)),
+        legend.title=element_text(size = 10), 
+        legend.text=element_text(size = 10),
+        axis.title.x = element_text(face = "bold"),
+        axis.title.y = element_text(face = "bold"))
+
+final_plot = figure_1 + figure_2 + plot_layout(ncol = 2) +
+  plot_annotation(title = "Fluctuation of stringency index over investigated time series")
+
+ggsave("Stringency_Index_Time.png", final_plot, width = 17, height = 4)
 
 ```
 
