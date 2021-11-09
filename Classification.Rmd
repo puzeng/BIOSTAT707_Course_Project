@@ -1,0 +1,240 @@
+---
+title: "Classification"
+author: "Pu Zeng"
+date: "11/9/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tree)
+library(randomForest)
+library(tidyverse)
+library(magrittr)
+library(reshape)
+library(patchwork)
+library(ggplot2)
+library(gmodels)
+library(rpart)
+library(e1071)
+library(caret)
+```
+
+```{r}
+cluster_url = "https://raw.githubusercontent.com/puzeng/BIOSTAT707_Course_Project/main/Hierarchical_Clustering/hc_cluster.csv"
+cluster_df = read_csv(cluster_url)
+
+
+weekly_covid_url_1 = "https://raw.githubusercontent.com/puzeng/BIOSTAT707_Course_Project/main/COVID_Complete/covid_1.csv"
+covid_weekly_1 = read_csv(weekly_covid_url_1)
+
+
+weekly_covid_url_2 = "https://raw.githubusercontent.com/puzeng/BIOSTAT707_Course_Project/main/COVID_Complete/covid_2.csv"
+covid_weekly_2 = read_csv(weekly_covid_url_2)
+
+weekly_covid_url_3 = "https://raw.githubusercontent.com/puzeng/BIOSTAT707_Course_Project/main/COVID_Complete/covid_3.csv"
+covid_weekly_3 = read_csv(weekly_covid_url_3)
+
+weekly_covid_url_4 = "https://raw.githubusercontent.com/puzeng/BIOSTAT707_Course_Project/main/COVID_Complete/covid_4.csv"
+covid_weekly_4 = read_csv(weekly_covid_url_4)
+
+weekly_covid_url_5 = "https://raw.githubusercontent.com/puzeng/BIOSTAT707_Course_Project/main/COVID_Complete/covid_5.csv"
+covid_weekly_5 = read_csv(weekly_covid_url_5)
+
+cluster_df = cluster_df %>% select(id, date2, cluster)
+```
+
+```{r}
+
+covid_weekly_1 = covid_weekly_1[, -c(4,5,6,7)]
+covid_weekly_2 = covid_weekly_2[, -c(4,5,6,7)]
+covid_weekly_3 = covid_weekly_3[, -c(4,5,6,7)]
+covid_weekly_4 = covid_weekly_4[, -c(4,5,6,7)]
+covid_weekly_5 = covid_weekly_5[, -c(4,5,6,7)]
+
+covid_weekly_1 = covid_weekly_1 %>% left_join(cluster_df, by = c("id", "date2"))
+covid_weekly_2 = covid_weekly_2 %>% left_join(cluster_df, by = c("id", "date2"))
+covid_weekly_3 = covid_weekly_3 %>% left_join(cluster_df, by = c("id", "date2"))
+covid_weekly_4 = covid_weekly_4 %>% left_join(cluster_df, by = c("id", "date2"))
+covid_weekly_5 = covid_weekly_5 %>% left_join(cluster_df, by = c("id", "date2"))
+
+covid_weekly_1$cluster = as.factor(covid_weekly_1$cluster)
+covid_weekly_2$cluster = as.factor(covid_weekly_2$cluster)
+covid_weekly_3$cluster = as.factor(covid_weekly_3$cluster)
+covid_weekly_4$cluster = as.factor(covid_weekly_4$cluster)
+covid_weekly_5$cluster = as.factor(covid_weekly_5$cluster)
+```
+
+```{r}
+# Decision Tree
+# Random Forest
+# SVM
+
+#### Decision Tree #####
+
+set.seed(2021)
+
+val_sets_1 = createFolds(covid_weekly_1$cluster, k = 5)
+
+error_rate_1 = NULL
+acc_rate_1 = NULL
+
+for(i in 1:5){
+  test_df = covid_weekly_1[val_sets_1[[i]], ]
+  train_df = covid_weekly_1[-val_sets_1[[i]],]
+  decision_tree = rpart(cluster ~ ., data = train_df[, 4:ncol(train_df)], control = rpart.control(cp = 0))
+  
+  prediction = predict(decision_tree, test_df[, 4:18], type = "class")
+
+  acc_rate_1[i] = sum(prediction == test_df$cluster)/length(prediction)
+  error_rate_1[i] = sum(prediction != test_df$cluster)/length(prediction)
+}
+
+DT_metrics_1 = data.frame(Accuracy = acc_rate_1, Error_Rate = error_rate_1, Fold_num  = 1:5, Set_NO = 1)
+
+val_sets_2 = createFolds(covid_weekly_2$cluster, k = 5)
+
+error_rate_2 = NULL
+acc_rate_2 = NULL
+
+for(i in 1:5){
+  test_df = covid_weekly_2[val_sets_2[[i]], ]
+  train_df = covid_weekly_2[-val_sets_2[[i]],]
+  decision_tree = rpart(cluster ~ ., data = train_df[, 4:ncol(train_df)], control = rpart.control(cp = 0))
+  
+  prediction = predict(decision_tree, test_df[, 4:18], type = "class")
+
+  acc_rate_2[i] = sum(prediction == test_df$cluster)/length(prediction)
+  error_rate_2[i] = sum(prediction != test_df$cluster)/length(prediction)
+}
+
+DT_metrics_2 = data.frame(Accuracy = acc_rate_2, Error_Rate = error_rate_2, Fold_num  = 1:5, Set_NO = 2)
+
+val_sets_3 = createFolds(covid_weekly_3$cluster, k = 5)
+
+error_rate_3 = NULL
+acc_rate_3 = NULL
+
+for(i in 1:5){
+  test_df = covid_weekly_3[val_sets_3[[i]], ]
+  train_df = covid_weekly_3[-val_sets_3[[i]],]
+  decision_tree = rpart(cluster ~ ., data = train_df[, 4:ncol(train_df)], control = rpart.control(cp = 0))
+  
+  prediction = predict(decision_tree, test_df[, 4:18], type = "class")
+
+  acc_rate_3[i] = sum(prediction == test_df$cluster)/length(prediction)
+  error_rate_3[i] = sum(prediction != test_df$cluster)/length(prediction)
+}
+
+DT_metrics_3 = data.frame(Accuracy = acc_rate_3, Error_Rate = error_rate_3, Fold_num  = 1:5, Set_NO = 3)
+
+val_sets_4 = createFolds(covid_weekly_4$cluster, k = 5)
+
+error_rate_4 = NULL
+acc_rate_4 = NULL
+
+for(i in 1:5){
+  test_df = covid_weekly_4[val_sets_4[[i]], ]
+  train_df = covid_weekly_4[-val_sets_4[[i]],]
+  decision_tree = rpart(cluster ~ ., data = train_df[, 4:ncol(train_df)], control = rpart.control(cp = 0))
+  
+  prediction = predict(decision_tree, test_df[, 4:18], type = "class")
+
+  acc_rate_4[i] = sum(prediction == test_df$cluster)/length(prediction)
+  error_rate_4[i] = sum(prediction != test_df$cluster)/length(prediction)
+}
+
+DT_metrics_4 = data.frame(Accuracy = acc_rate_4, Error_Rate = error_rate_4, Fold_num  = 1:5, Set_NO = 4)
+
+
+val_sets_5 = createFolds(covid_weekly_5$cluster, k = 5)
+
+error_rate_5 = NULL
+acc_rate_5 = NULL
+
+for(i in 1:5){
+  test_df = covid_weekly_5[val_sets_5[[i]], ]
+  train_df = covid_weekly_5[-val_sets_5[[i]],]
+  decision_tree = rpart(cluster ~ ., data = train_df[, 4:ncol(train_df)], control = rpart.control(cp = 0))
+  
+  prediction = predict(decision_tree, test_df[, 4:18], type = "class")
+
+  acc_rate_5[i] = sum(prediction == test_df$cluster)/length(prediction)
+  error_rate_5[i] = sum(prediction != test_df$cluster)/length(prediction)
+}
+
+DT_metrics_5 = data.frame(Accuracy = acc_rate_5, Error_Rate = error_rate_5, Fold_num  = 1:5, Set_NO = 5)
+
+DT_metrics = rbind.data.frame(DT_metrics_1, DT_metrics_2, DT_metrics_3, DT_metrics_4, DT_metrics_5)
+```
+
+
+```{r}
+set.seed(2021)
+
+tune_para_1 = tuneRF(covid_weekly_1[, 4:18], covid_weekly_1$cluster, ntreeTry = 100, improve = 0.05)
+tune_para_1 = as.data.frame(tune_para_1)
+mtry_num_1 = tune_para_1[which.min(tune_para_1$OOBError),1]
+
+rf_1 = randomForest(cluster ~ ., data = covid_weekly_1[, 4:19], ntree = 100, mtry = mtry_num_1, importance = TRUE)
+
+rf_metrics_1 = data.frame(Error_rate = min(rf_1$err.rate[, 1]), Accuracy = 1-min(rf_1$err.rate[, 1]), Set_NO = 1)
+
+tune_para_2 = tuneRF(covid_weekly_2[, 4:18], covid_weekly_2$cluster, ntreeTry = 100, improve = 0.05)
+tune_para_2 = as.data.frame(tune_para_2)
+mtry_num_2 = tune_para_2[which.min(tune_para_2$OOBError),1]
+
+rf_2 = randomForest(cluster ~ ., data = covid_weekly_2[, 4:19], ntree = 100, mtry = mtry_num_2, importance = TRUE)
+
+rf_metrics_2 = data.frame(Error_rate = min(rf_2$err.rate[, 1]), Accuracy = 1-min(rf_2$err.rate[, 1]), Set_NO = 2)
+
+tune_para_3 = tuneRF(covid_weekly_3[, 4:18], covid_weekly_3$cluster, ntreeTry = 100, improve = 0.05)
+tune_para_3 = as.data.frame(tune_para_3)
+mtry_num_3 = tune_para_3[which.min(tune_para_3$OOBError),1]
+
+rf_3 = randomForest(cluster ~ ., data = covid_weekly_3[, 4:19], ntree = 100, mtry = mtry_num_3, importance = TRUE)
+
+rf_metrics_3 = data.frame(Error_rate = min(rf_3$err.rate[, 1]), Accuracy = 1-min(rf_3$err.rate[, 1]), Set_NO = 3)
+
+tune_para_4 = tuneRF(covid_weekly_4[, 4:18], covid_weekly_4$cluster, ntreeTry = 100, improve = 0.05)
+tune_para_4 = as.data.frame(tune_para_4)
+mtry_num_4 = tune_para_4[which.min(tune_para_4$OOBError),1]
+
+rf_4 = randomForest(cluster ~ ., data = covid_weekly_4[, 4:19], ntree = 100, mtry = mtry_num_4, importance = TRUE)
+
+rf_metrics_4 = data.frame(Error_rate = min(rf_4$err.rate[, 1]), Accuracy = 1-min(rf_4$err.rate[, 1]), Set_NO = 4)
+
+
+
+tune_para_5 = tuneRF(covid_weekly_5[, 4:18], covid_weekly_5$cluster, ntreeTry = 100, improve = 0.05)
+tune_para_5 = as.data.frame(tune_para_5)
+mtry_num_5 = tune_para_5[which.min(tune_para_5$OOBError),1]
+
+rf_5 = randomForest(cluster ~ ., data = covid_weekly_5[, 4:19], ntree = 100, mtry = mtry_num_5, importance = TRUE)
+
+rf_metrics_5 = data.frame(Error_rate = min(rf_5$err.rate[, 1]), Accuracy = 1-min(rf_5$err.rate[, 1]), Set_NO = 5)
+
+
+rf_metrics = rbind.data.frame(rf_metrics_1, rf_metrics_2, rf_metrics_3, rf_metrics_4, rf_metrics_5)
+
+```
+ 
+```{r}
+DT_metrics %>% group_by(Set_NO) %>% summarise(mean_acc = mean(Accuracy), mean_error = mean(Error_Rate))
+
+DT = DT_metrics %>% 
+  summarise(mean_acc = round(mean(Accuracy), 4), mean_error = round(mean(Error_Rate), 4)) %>% 
+  mutate(Model = 'Decision Tree')
+
+RF = rf_metrics %>% 
+  summarise(mean_acc = round(mean(Accuracy),4), mean_error = round(mean(Error_rate), 4)) %>% 
+  mutate(Model = 'Random Forest')
+
+classification_models = rbind.data.frame(DT, RF)
+
+classification_models
+```
+
