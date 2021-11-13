@@ -24,10 +24,6 @@ library(caret)
 ```
 
 ```{r}
-cluster_url = "https://raw.githubusercontent.com/puzeng/BIOSTAT707_Course_Project/main/Hierarchical_Clustering/hc_cluster.csv"
-cluster_df = read_csv(cluster_url)
-
-
 weekly_covid_url_1 = "https://raw.githubusercontent.com/puzeng/BIOSTAT707_Course_Project/main/COVID_Complete/covid_1.csv"
 covid_weekly_1 = read_csv(weekly_covid_url_1)
 
@@ -44,7 +40,6 @@ covid_weekly_4 = read_csv(weekly_covid_url_4)
 weekly_covid_url_5 = "https://raw.githubusercontent.com/puzeng/BIOSTAT707_Course_Project/main/COVID_Complete/covid_5.csv"
 covid_weekly_5 = read_csv(weekly_covid_url_5)
 
-cluster_df = cluster_df %>% select(id, date2, cluster)
 ```
 
 ```{r}
@@ -55,11 +50,12 @@ covid_weekly_3 = covid_weekly_3[, -c(4,5,6,7)]
 covid_weekly_4 = covid_weekly_4[, -c(4,5,6,7)]
 covid_weekly_5 = covid_weekly_5[, -c(4,5,6,7)]
 
-covid_weekly_1 = covid_weekly_1 %>% left_join(cluster_df, by = c("id", "date2"))
-covid_weekly_2 = covid_weekly_2 %>% left_join(cluster_df, by = c("id", "date2"))
-covid_weekly_3 = covid_weekly_3 %>% left_join(cluster_df, by = c("id", "date2"))
-covid_weekly_4 = covid_weekly_4 %>% left_join(cluster_df, by = c("id", "date2"))
-covid_weekly_5 = covid_weekly_5 %>% left_join(cluster_df, by = c("id", "date2"))
+
+covid_weekly_1$cluster = if_else(covid_weekly_1$newcases_p > median(covid_weekly_1$newcases_p, na.rm = TRUE), 1, 0)
+covid_weekly_2$cluster = if_else(covid_weekly_1$newcases_p > median(covid_weekly_2$newcases_p, na.rm = TRUE), 1, 0)
+covid_weekly_3$cluster = if_else(covid_weekly_1$newcases_p > median(covid_weekly_3$newcases_p, na.rm = TRUE), 1, 0)
+covid_weekly_4$cluster = if_else(covid_weekly_1$newcases_p > median(covid_weekly_4$newcases_p, na.rm = TRUE), 1, 0)
+covid_weekly_5$cluster = if_else(covid_weekly_1$newcases_p > median(covid_weekly_5$newcases_p, na.rm = TRUE), 1, 0)
 
 covid_weekly_1$cluster = as.factor(covid_weekly_1$cluster)
 covid_weekly_2$cluster = as.factor(covid_weekly_2$cluster)
