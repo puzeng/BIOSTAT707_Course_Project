@@ -1,0 +1,53 @@
+---
+title: "Baseline_Weekly_Data"
+author: "Pu Zeng"
+date: "11/6/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+library(tidyverse)
+library(ggplot2)
+library(magrittr)
+library(stats)
+library(reshape2)
+library(vtable)
+library(kableExtra)
+library(lubridate)
+library(randomcoloR)
+library(patchwork)
+```
+
+```{r load data, message=FALSE, warning=FALSE}
+covid_weekly = read_csv('https://raw.githubusercontent.com/puzeng/BIOSTAT707_Course_Project/main/covid_weekly.csv')
+covid_weekly = covid_weekly[, -1]
+```
+
+
+```{r Summary Stats Tbl}
+sumtable(covid_weekly,
+         summ = c('notNA(x)', 'mean(x)', 'sd(x)', 'propNA(x)', 'pctile(x)[75]', 'max(x)'),
+         summ.names = c('Count', 'Mean', "SD", 'Prop of NAs', 'Pctle 75', 'Max'),
+         align = 'center',
+         col.align = 'center',
+         col.breaks = 6)
+```
+
+
+```{r}
+set.seed(2021)
+color_scheme = randomColor(count = length(unique(covid_weekly$id)),
+                           hue = 'random', luminosity = 'dark')
+
+covid_weekly$Color_by_id = color_scheme
+```
+
+
+
+
+

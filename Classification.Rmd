@@ -68,7 +68,7 @@ covid_weekly_5$cluster = as.factor(covid_weekly_5$cluster)
 # Decision Tree
 # Random Forest
 # SVM
-
+covid_weekly_1 %>% group_by(cluster) %>% summarise(n = n())
 #### Decision Tree #####
 
 set.seed(2021)
@@ -218,7 +218,7 @@ rf_metrics = rbind.data.frame(rf_metrics_1, rf_metrics_2, rf_metrics_3, rf_metri
 
 ```
  
-```{r}
+```{r }
 DT_metrics %>% group_by(Set_NO) %>% summarise(mean_acc = mean(Accuracy), mean_error = mean(Error_Rate))
 
 DT = DT_metrics %>% 
@@ -232,5 +232,10 @@ RF = rf_metrics %>%
 classification_models = rbind.data.frame(DT, RF)
 
 classification_models
+```
+
+```{r}
+model = glm(cluster ~ ., data = covid_weekly_1[, 4:ncol(covid_weekly_1)], family = 'binomial')
+summary(model)
 ```
 
