@@ -21,6 +21,7 @@ library(gmodels)
 library(rpart)
 library(e1071)
 library(caret)
+library(flextable)
 ```
 
 ```{r}
@@ -165,10 +166,158 @@ for(i in 1:5){
 DT_metrics_5 = data.frame(Accuracy = acc_rate_5, Error_Rate = error_rate_5, Fold_num  = 1:5, Set_NO = 5)
 
 DT_metrics = rbind.data.frame(DT_metrics_1, DT_metrics_2, DT_metrics_3, DT_metrics_4, DT_metrics_5)
+
+AVE_DT_metrics= DT_metrics %>% group_by(Set_NO) %>% summarise(Ave_Accuracy = mean(Accuracy),
+                                              Ave_Error_Rate = mean(Error_Rate))
+
+AVE_DT_metrics$`Ave_Accuracy` = round(AVE_DT_metrics$`Ave_Accuracy`, 4)
+AVE_DT_metrics$`Ave_Error_Rate` = round(AVE_DT_metrics$`Ave_Error_Rate`, 4)
+
+colnames(AVE_DT_metrics) = c("covid # data set", "5-folds CV Average Accuracy Rate", "5-folds CV Average Error Rate")
+
+flextable(AVE_DT_metrics)
 ```
 
 
 ```{r}
+control = trainControl(method = "repeatedcv", number = 10, repeats = 3)
+tunegrid = expand.grid(.mtry = c(1:10), .ntree = c(60, 80, 100, 120))
+
+customRF = list(type = "Classification", library = "randomForest", loop = NULL)
+customRF$parameters = data.frame(parameter = c("mtry", "ntree"),
+                                 class = rep("numeric", 2),
+                                 label =  c("mtry", "ntree"))
+
+customRF$grid <- function(x, y, len = NULL, search = "grid") {}
+
+customRF$fit <- function(x, y, wts, param, lev, last, weights, classProbs, ...) {
+  randomForest(x, y, mtry = param$mtry, ntree=param$ntree, ...)
+}
+
+customRF$predict <- function(modelFit, newdata, preProc = NULL, submodels = NULL)
+   predict(modelFit, newdata)
+
+customRF$prob <- function(modelFit, newdata, preProc = NULL, submodels = NULL)
+   predict(modelFit, newdata, type = "prob")
+
+customRF$sort <- function(x) x[order(x[,1]),]
+
+customRF$levels <- function(x) x$classes
+
+set.seed(2021)
+
+custom = train(cluster~.,
+               data = covid_weekly_1[, 4:19],
+               method = customRF,
+               tuneGrid=tunegrid,
+               trControl=control)
+```
+
+```{r}
+plot(custom)
+```
+
+```{r}
+control = trainControl(method = "repeatedcv", number = 10, repeats = 3)
+tunegrid = expand.grid(.mtry = c(1:10), .ntree = c(60, 80, 100, 120))
+
+customRF = list(type = "Classification", library = "randomForest", loop = NULL)
+customRF$parameters = data.frame(parameter = c("mtry", "ntree"),
+                                 class = rep("numeric", 2),
+                                 label =  c("mtry", "ntree"))
+
+customRF$grid <- function(x, y, len = NULL, search = "grid") {}
+
+customRF$fit <- function(x, y, wts, param, lev, last, weights, classProbs, ...) {
+  randomForest(x, y, mtry = param$mtry, ntree=param$ntree, ...)
+}
+
+customRF$predict <- function(modelFit, newdata, preProc = NULL, submodels = NULL)
+   predict(modelFit, newdata)
+
+customRF$prob <- function(modelFit, newdata, preProc = NULL, submodels = NULL)
+   predict(modelFit, newdata, type = "prob")
+
+customRF$sort <- function(x) x[order(x[,1]),]
+
+customRF$levels <- function(x) x$classes
+
+set.seed(2021)
+
+custom = train(cluster~.,
+               data = covid_weekly_2[, 4:19],
+               method = customRF,
+               tuneGrid=tunegrid,
+               trControl=control)
+```
+
+```{r}
+plot(custom)
+```
+
+```{r}
+custom = train(cluster~.,
+               data = covid_weekly_3[, 4:19],
+               method = customRF,
+               tuneGrid=tunegrid,
+               trControl=control)
+
+plot(custom)
+```
+
+```{r}
+custom = train(cluster~.,
+               data = covid_weekly_4[, 4:19],
+               method = customRF,
+               tuneGrid=tunegrid,
+               trControl=control)
+
+plot(custom)
+```
+
+```{r}
+custom = train(cluster~.,
+               data = covid_weekly_5[, 4:19],
+               method = customRF,
+               tuneGrid=tunegrid,
+               trControl=control)
+
+plot(custom)
+```
+
+
+```{r}
+
+rf_1 = randomForest(cluster ~ ., data = covid_weekly_1[, 4:19], ntree = 60, mtry = 4, importance = TRUE)
+
+rf_metrics_1 = data.frame(Error_rate = min(rf_1$err.rate[, 1]), Accuracy = 1-min(rf_1$err.rate[, 1]), Set_NO = 1)
+
+rf_2 = randomForest(cluster ~ ., data = covid_weekly_2[, 4:19], ntree = 100, mtry = 2, importance = TRUE)
+
+rf_metrics_2 = data.frame(Error_rate = min(rf_2$err.rate[, 1]), Accuracy = 1-min(rf_2$err.rate[, 1]), Set_NO = 2)
+
+rf_3 = randomForest(cluster ~ ., data = covid_weekly_3[, 4:19], ntree = 100, mtry = 10, importance = TRUE)
+
+rf_metrics_3 = data.frame(Error_rate = min(rf_3$err.rate[, 1]), Accuracy = 1-min(rf_3$err.rate[, 1]), Set_NO = 3)
+
+rf_4 = randomForest(cluster ~ ., data = covid_weekly_4[, 4:19], ntree = 120, mtry = 9, importance = TRUE)
+
+rf_metrics_4 = data.frame(Error_rate = min(rf_4$err.rate[, 1]), Accuracy = 1-min(rf_4$err.rate[, 1]), Set_NO = 4)
+
+rf_5 = randomForest(cluster ~ ., data = covid_weekly_5[, 4:19], ntree = 120, mtry = 6, importance = TRUE)
+
+rf_metrics_5 = data.frame(Error_rate = min(rf_5$err.rate[, 1]), Accuracy = 1-min(rf_5$err.rate[, 1]), Set_NO = 5)
+
+rf_metrics = rbind.data.frame(rf_metrics_1, rf_metrics_2, rf_metrics_3, rf_metrics_4, rf_metrics_5)
+
+rf_metrics$Error_rate = round(rf_metrics$Error_rate, 4)
+rf_metrics$Accuracy = round(rf_metrics$Accuracy, 4)
+rf_metrics = rf_metrics[, c(3,2,1)]
+colnames(rf_metrics) = c("covid # data set", "OOB Accuracy Rate", "OOB Error Rate")
+```
+
+
+```{r eval=FALSE, include=FALSE}
 set.seed(2021)
 
 tune_para_1 = tuneRF(covid_weekly_1[, 4:18], covid_weekly_1$cluster, ntreeTry = 100, improve = 0.05)
@@ -216,6 +365,10 @@ rf_metrics_5 = data.frame(Error_rate = min(rf_5$err.rate[, 1]), Accuracy = 1-min
 
 rf_metrics = rbind.data.frame(rf_metrics_1, rf_metrics_2, rf_metrics_3, rf_metrics_4, rf_metrics_5)
 
+rf_metrics$Error_rate = round(rf_metrics$Error_rate, 4)
+rf_metrics$Accuracy = round(rf_metrics$Accuracy, 4)
+rf_metrics = rf_metrics[, c(3,2,1)]
+colnames(rf_metrics) = c("covid # data set", "OOB Accuracy Rate", "OOB Error Rate")
 ```
  
 ```{r }
@@ -229,10 +382,34 @@ RF = rf_metrics %>%
   summarise(mean_acc = round(mean(Accuracy),4), mean_error = round(mean(Error_rate), 4)) %>% 
   mutate(Model = 'Random Forest')
 
+rf_metrics$Error_rate = round(rf_metrics$Error_rate, 4)
+rf_metrics$Accuracy = round(rf_metrics$Error_rate, 4)
+
+
 classification_models = rbind.data.frame(DT, RF)
 
 classification_models
 ```
+
+```{r}
+classification_models_metrics = rf_metrics %>% left_join(AVE_DT_metrics, by = "covid # data set")
+classification_models_metrics
+ft = flextable(classification_models_metrics)
+
+typology = data.frame(col_keys = colnames(classification_models_metrics),
+                      what = c('covid # data set', 
+                               'Random Forest', 'Random Forest', 'Decision Tree', 'Decision Tree'),
+                      measures = c('covid # data set',"Accuracy", "Error Rate", "Accuracy", "Error Rate"))
+
+ft = set_header_df(ft, mapping = typology, key = 'col_keys')
+ft = merge_h(ft, part = 'header')
+ft = merge_v(ft, j = 'covid # data set', part = 'header')
+ft = theme_vanilla(ft)
+ft
+
+colMeans(classification_models_metrics)
+```
+
 
 ```{r}
 model = glm(cluster ~ ., data = covid_weekly_1[, 4:ncol(covid_weekly_1)], family = 'binomial')
