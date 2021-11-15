@@ -1,0 +1,360 @@
+---
+title: "707 final"
+author: "Weijia Mai"
+date: "2021/11/8"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(corrplot)
+library(RColorBrewer)
+library(caTools)
+```
+
+```{r}
+covid_1=read.csv("covid_1.csv")
+covid_2=read.csv("covid_2.csv")
+covid_3=read.csv("covid_3.csv")
+covid_4=read.csv("covid_4.csv")
+covid_5=read.csv("covid_5.csv")
+data = read.csv("covid_1.csv")
+
+data_model <- data[,-c(1:7,16,17)]
+
+set.seed(2021)
+# split the sample
+sample <- sample.split(data_model$newcases_p, SplitRatio = 0.8)
+train <- subset(data_model, sample == TRUE)
+test <- subset(data_model, sample == FALSE)
+```
+
+```{r}
+# correlation
+M <-cor(data[,-c(1:7,data$vaccines_NA,"vaccines_count","newcases")])
+corrplot(M, type="upper", order="hclust",
+         col=brewer.pal(n=8, name="RdYlBu"))
+
+fit.del <- lm(newcases_p~poly(stringency_index, 2)+poly(population, 2)+exchange^2+tmp+Interest_Rate^2+recovered_p+deaths_p^2+,data=data)
+
+```
+
+```{r}
+
+# # polynomial model considering paired interaction
+# 
+# interaction <- c(combn(colnames(data[,-c(1:7,15,16,17,20)]), 2, FUN = function(x) paste(x[1] ,'*', x[2])))
+# 
+# formu <- as.formula(
+#     paste('newcases_p ~',paste('poly(',colnames(data[,-c(1:7,15,16,17,20)]),',2)',collapse = ' + '),'+','vaccines_NA','+',paste('poly(',interaction,',2)',collapse = ' + ')))
+# 
+# formu.1 <-  as.formula(
+#     paste('newcases_p ~',paste('poly(',colnames(data[,-c(1:7,15,16,17,20)]),',2)',collapse = ' + '),'+','vaccines_NA'))
+# 
+# fit.poly <- lm(formu,data=train)
+# summary(fit.poly)
+# 
+# # make predictions
+# poly.predict <-  predict(fit.poly, test[-11] )
+# # calculate the MSE
+# MSE.poly <- sum((test$newcases_p-poly.predict)^2)/length(test$newcases_p)
+# cat("MSE LASSO = ", MSE.poly,"\n")
+# 
+# # calculate the SSE
+# SSE.poly<- sum((poly.predict - test$newcases_p)^2)
+# # calculate SST
+# SST <- sum((test$newcases_p - mean(test$newcases_p))^2)
+# # calculate R squared
+# r_squared_poly <- 1-SSE.poly/SST
+# cat("R squared LASSO = ", r_squared_poly)
+```
+
+
+```{r}
+library(glmnet)
+library(caTools)
+set.seed(2021)
+
+# polynomial LASSO with interaction
+
+X.train <- model.matrix(newcases_p ~ . + 
+                 I(stringency_index ^2) + 
+                 I(tmp^2) + 
+                 I(exchange^2) + 
+                 I(GDP^2) + 
+                 I(Interest_Rate^2) + 
+                 I(unemployment ^2) + 
+                 I(vaccines_count_p^2) + 
+                 I(tests_p^2) +
+                 I(recovered_p^2) + 
+                 I(deaths_p^2)+
+                 vaccines_count_p*recovered_p + tests_p*recovered_p + 
+    tests_p*deaths_p + recovered_p*deaths_p + exchange*GDP + 
+    exchange*Interest_Rate + exchange*unemployment + stringency_index*GDP + 
+    stringency_index*Interest_Rate + stringency_index*unemployment,
+                        subset(train, select = -c(population) ))
+y.train <- train$newcases_p
+
+X.test <- model.matrix(newcases_p ~ . + 
+                 I(stringency_index ^2) + 
+                 I(tmp^2) + 
+                 I(exchange^2) + 
+                 I(GDP^2) + 
+                 I(Interest_Rate^2) + 
+                 I(unemployment ^2) + 
+                 I(vaccines_count_p^2) + 
+                 I(tests_p^2) +
+                 I(recovered_p^2) + 
+                 I(deaths_p^2)+
+                 vaccines_count_p*recovered_p + tests_p*recovered_p + 
+    tests_p*deaths_p + recovered_p*deaths_p + exchange*GDP + 
+    exchange*Interest_Rate + exchange*unemployment + stringency_index*GDP + 
+    stringency_index*Interest_Rate + stringency_index*unemployment,
+                        subset(test, select = -c(population) ))
+y.test <- test$newcases_p
+
+
+# fit LASSO
+cv.LASSO <-  cv.glmnet(X.train, y.train, alpha = 1) 
+# Select lambda that minimizes training MSE
+opt.lambda.LASSO <- cv.LASSO$lambda.min 
+# refit the model using optimal lambda
+refit.LASSO <- glmnet(X.train, y.train, alpha = 1, lambda = opt.lambda.LASSO)
+coef(refit.LASSO)
+
+# make predictions
+LASSO.predict <-  predict(refit.LASSO, X.test, s = opt.lambda.LASSO )
+# calculate the MSE
+MSE.LASSO <- sum((y.test-LASSO.predict)^2)/length(y.test)
+cat("MSE LASSO = ", MSE.LASSO,"\n")
+
+# # calculate the SSE
+# SSE.LASSO <- sum((LASSO.predict - y.test)^2)
+# # calculate SST
+# SST <- sum((test$newcases_p - mean(test$newcases_p))^2)
+# # calculate SSR
+# SSR.LASSO <- sum((LASSO.predict - mean(y.test))^2)
+# # calculate R squared
+# r_squared_LASSO <- 1-SSE.LASSO/SST
+# 
+# cat("R squared LASSO = ", r_squared_LASSO,"\n")
+
+
+# calculate the AIC
+tLL <- refit.LASSO$nulldev - deviance(refit.LASSO)
+k <- refit.LASSO$df
+n <- refit.LASSO$nobs
+AIC <- -tLL+2*k+2*k*(k+1)/(n-k-1)
+cat("AIC LASSO = ", AIC,"\n")
+
+# calculate the BIC
+BIC<-log(n)*k - tLL
+cat("BIC LASSO = ", BIC,"\n")
+
+# calculate adjusted r squared
+r.adj.LASSO <- 1-((1-r_squared_LASSO)*(n-1)/(n-k-1))
+cat("Adjusted R squared LASSO = ", r.adj.LASSO)
+```
+
+```{r}
+plot(train$stringency_index,train$newcases_p , main = "Main title",
+     xlab = "X axis title", ylab = "Y axis title",
+     pch = 19, frame = FALSE)
+
+plot(train$tmp,train$newcases_p , main = "Main title",
+     xlab = "X axis title", ylab = "Y axis title",
+     pch = 19, frame = FALSE)
+
+k <- 0
+for (i in c(1,3:10,12,13)){
+  plot(train[,i],train$newcases_p , main = paste(colnames(train)[i]),
+     xlab = paste(colnames(train)[i]), ylab = "new_cases",
+     pch = 19, frame = FALSE,cex.lab = 1.5,cex.axis = 1.5,cex.main=2)
+}
+p1+p2
+
+```
+
+
+看coefficient大小，如果三次大，就是三次的关系
+
+散点图看关系选次项
+
+```{r}
+# # linear Ridge with interaction
+# 
+# X.train <- model.matrix(newcases_p ~ . +  vaccines_count_p*recovered_p+
+#                    GDP*unemployment,
+#                         subset(train, select = -c(population) ))
+# y.train <- train$newcases_p
+# 
+# X.test <- model.matrix(newcases_p ~ . + 
+#  vaccines_count_p*recovered_p+
+#                    GDP*unemployment,
+#                         subset(test, select = -c(population) ))
+# y.test <- test$newcases_p
+# 
+# 
+# # fit Ridge
+# cv.ridge <-  cv.glmnet(X.train, y.train, alpha = 0) 
+# # Select lambda that minimizes training MSE
+# opt.lambda.ridge <- cv.ridge$lambda.min 
+# # refit the model using optimal lambda
+# refit.ridge <- glmnet(X.train, y.train, alpha = 0, lambda = opt.lambda.ridge)
+# coef(refit.ridge)
+# 
+# # make predictions
+# ridge.predict <-  predict(refit.ridge, X.test, s = opt.lambda.ridge )
+# # calculate the MSE
+# MSE.ridge <- sum((y.test-ridge.predict)^2)/length(y.test)
+# cat("MSE Ridge = ", MSE.ridge,"\n")
+# 
+# # calculate the SSE
+# SSE.ridge <- sum((ridge.predict - y.test)^2)
+# # calculate SST
+# SST <- sum((test$newcases_p - mean(test$newcases_p))^2)
+# # calculate SSR
+# SSR.ridge <- sum((ridge.predict - mean(y.test))^2)
+# # calculate R squared
+# r_squared_ridge <- SSR.ridge/SST
+# cat("R squared Ridge = ", r_squared_ridge,"\n")
+# 
+# 
+# # calculate the AIC
+# tLL <- refit.ridge$nulldev - deviance(refit.ridge)
+# k <- refit.ridge$df
+# n <- refit.ridge$nobs
+# AIC <- -tLL+2*k+2*k*(k+1)/(n-k-1)
+# cat("AIC Ridge = ", AIC,"\n")
+# 
+# # calculate the BIC
+# BIC<-log(n)*k - tLL
+# cat("BIC Ridge = ", BIC,"\n")
+# 
+# # calculate adjusted r squared
+# r.adj.ridge <- 1-((1-r_squared_ridge)*(n-1)/(n-k-1))
+# cat("Adjusted R squared Ridge = ", r.adj.ridge)
+
+
+```
+
+
+
+
+# ```{r}
+# # polynomial ridge
+# set.seed(2021)
+# # find the optimal value
+# # Fit ridge regression model on training data
+# cv.ridge <-  cv.glmnet(X.train, y.train, alpha = 0) 
+# # Select lambda that minimizes training MSE
+# opt.lambda.ridge <- cv.ridge$lambda.min 
+# 
+# # make prediction
+# poly.ridge.predict <-  predict(cv.ridge, X.test, s = opt.lambda.ridge )
+# 
+# # calculate the SSE
+# SSE.ridge.poly <- sum((poly.ridge.predict - y.test)^2)
+# # calculate the MSE
+# MSE.ridge.poly <- SSE.ridge.poly/length(y.test)
+# cat("MSE RidgePolynomial  = ", MSE.ridge.poly,"\n")
+# # calculate R squared
+# r_squared_ridge_poly <- 1-SSE.ridge.poly/SST
+# cat("R squared Ridge Polynomial = ", r_squared_ridge_poly)
+# ```
+
+
+```{r}
+# spline model
+library(gam)
+library(splines)
+fit.spline <- lm(newcases_p ~ bs(exchange, knots=c(800,4000) ) + bs(Interest_Rate, knots=c(1,2)) + bs(GDP,knots=c(30000,55000)) + stringency_index + tmp + unemployment + vaccines_NA + vaccines_count_p + tests_p + recovered_p + deaths_p + vaccines_count_p*recovered_p + tests_p*recovered_p + 
+    tests_p*deaths_p + recovered_p*deaths_p + bs(exchange, knots=c(800,4000) )*bs(GDP,knots=c(30000,55000)) + 
+    bs(exchange, knots=c(800,4000) )*bs(Interest_Rate, knots=c(1,2)) + bs(exchange, knots=c(800,4000) )*unemployment + stringency_index*bs(GDP,knots=c(30000,55000)) + 
+    stringency_index*bs(Interest_Rate, knots=c(1,2)) + stringency_index*unemployment
+                   , data = subset(train, select = -c(population) ))
+
+# make predictions
+spline.predict <-  predict(fit.spline, subset(test, select = -c(population,newcases_p)))
+# calculate the MSE
+MSE.spline <- sum((test$newcases_p-spline.predict)^2)/length(test$newcases_p)
+cat("MSE Spline = ", MSE.spline,"\n")
+
+# calculate the SSE
+SSE.spline <- sum((spline.predict - test$newcases_p)^2)
+# calculate SST
+SST <- sum((test$newcases_p - mean(test$newcases_p))^2)
+# calculate SSR
+SSR.spline <- sum((spline.predict - mean(test$newcases_p))^2)
+# calculate R squared
+r_squared_spline <- SSR.spline/SST
+
+SSR.spline/(SSR.spline+SSE.spline)
+
+cat("R squared Spline = ", r_squared_spline,"\n")
+
+AIC(fit.spline)
+BIC(fit.spline)
+
+fit.spline
+```
+
+```{r}
+linear=lm(newcases_p~stringency_index+tmp+exchange+Interest_Rate+GDP+unemployment+vaccines_NA+vaccines_count_p+tests_p+recovered_p+deaths_p+
+       vaccines_count_p:recovered_p+vaccines_count_p:deaths_p+
+       tests_p:recovered_p+tests_p:deaths_p+recovered_p:deaths_p+
+       exchange:GDP+exchange:Interest_Rate+exchange:unemployment+exchange:stringency_index+
+       GDP:Interest_Rate+GDP:unemployment+GDP:stringency_index+
+       Interest_Rate:stringency_index+unemployment:stringency_index,
+       data=covid_1)
+
+# stepwise
+library(MASS)
+set.seed(2021)
+MASS::stepAIC(linear, direction = "both", trace = FALSE)$anova
+step.linear <- MASS::stepAIC(linear, direction = "both", trace = FALSE)
+
+# make predictions
+linear.predict <-  predict(step.linear, subset(test, select = -c(population,newcases_p)))
+# calculate the MSE
+MSE.linear <- sum((test$newcases_p-spline.predict)^2)/length(test$newcases_p)
+cat("MSE Linear = ", MSE.linear,"\n")
+
+```
+
+
+```{r}
+# plot
+test_pl <- subset(data, sample == FALSE)
+#test_pl$predict <- spline.predict
+test_pl$predict <- linear.predict
+pl<-test_pl[test_pl$id == "AUS", ]
+
+ggplot(aes(x = date2,group=1), data = pl) + 
+  geom_line(aes(y = newcases_p,color = "Actual"))+
+  geom_line(aes(y = predict,color = "Predict"))+
+  labs(title="Model Performance",x="time (year - number of week in the year)",y="New Cases Proportion (%)")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),plot.title = element_text(hjust=0.5))
+
+```
+```{r}
+library(dplyr)
+library(flextable)
+# table
+
+names <- c("Linear","Polynomial","Spline","Linear","Spline")
+values <- c(-9763.8,67.1,-7927.1,-9723.7,-7878.1)
+table <- rbind(names,values) %>% data.frame() 
+table %>%  flextable() %>% 
+  delete_part(part = "header") %>% 
+  add_header_row(values = c("Imputed Dataset 1","Averaged"), colwidths = c(3,2)) %>%
+  theme_booktabs() %>%
+  hline(part="body",i=1 ) %>% 
+  vline( j = 3,  part = "body") %>% 
+  vline(j=1,part="header") %>% 
+  autofit()%>% width(width = 0.8) %>% empty_blanks() %>%  
+  set_caption('AIC of Models') %>% 
+  align(align = "center", part = "all")
+
+```
+
