@@ -1,0 +1,444 @@
+---
+title: "Regression"
+author: "Yuqing Liu"
+date: "11/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(corrplot)
+library(tidyverse)
+library(glmnet)
+library(caTools)
+library(ggplot2)
+library(patchwork)
+library(splines)
+knitr::opts_chunk$set(echo = TRUE)
+covid_1=read.csv('/Users/yuqingliu/Desktop/COVID_Complete/covid_1.csv')
+covid_2=read.csv('/Users/yuqingliu/Desktop/COVID_Complete/covid_2.csv')
+covid_3=read.csv('/Users/yuqingliu/Desktop/COVID_Complete/covid_3.csv')
+covid_4=read.csv('/Users/yuqingliu/Desktop/COVID_Complete/covid_4.csv')
+covid_5=read.csv('/Users/yuqingliu/Desktop/COVID_Complete/covid_5.csv')
+```
+
+
+
+## Linear & Average Linear Model
+```{r}
+# Linear model for dataset 1
+linear=lm(newcases_p~stringency_index+tmp+exchange+GDP+Interest_Rate+unemployment+vaccines_NA+vaccines_count_p+tests_p+recovered_p+deaths_p+recovered_p:deaths_p+exchange:GDP:Interest_Rate:unemployment,data=covid_1)
+
+# Model Selection
+MASS::stepAIC(linear,direction=c("both"),trace=F)$anova
+
+# Average Linear Model of all data for Interpretation
+covid=list(covid_1,covid_2,covid_3,covid_4,covid_5)
+covid_train=list()
+covid_test=list()
+lm.total=list()
+for (i in 1:5) {
+  set.seed(2021)
+  covid[[i]]$split<-sample.split(covid[[i]]$newcases_p,SplitRatio=0.8)
+  covid_train[[i]]<-covid[[i]] %>% filter(split==T)
+  covid_test[[i]]<-covid[[i]] %>% filter(split==F)
+  lm.total[[i]]=lm(newcases_p~stringency_index+tmp+exchange+GDP+Interest_Rate+unemployment+vaccines_NA+vaccines_count_p+tests_p+recovered_p+deaths_p+recovered_p:deaths_p+exchange:GDP:Interest_Rate:unemployment,data=covid[[i]])
+}
+avg.lm.total=MuMIn::model.avg(lm.total)
+avg.lm.total %>% summary()
+
+
+# Average Linear Model of training data for Prediction 
+lm=list()
+coefficients_lm=list()
+newx=list()
+predict.lm=list()
+MSE_lm_test=rep(NA,5)
+AIC_lm=rep(NA,5)
+for (i in 1:5) {
+  lm[[i]]=lm(newcases_p~stringency_index+tmp+exchange+GDP+Interest_Rate+unemployment+vaccines_NA+vaccines_count_p+tests_p+recovered_p+deaths_p+recovered_p:deaths_p+exchange:GDP:Interest_Rate:unemployment,data=covid_train[[i]])
+  #plot(lm[[i]])
+  newx[[i]]<-cbind(covid_test[[i]][8],covid_test[[i]][,10:15],
+                   covid_test[[i]][,18:19],covid_test[[i]][,21:22]) %>% as.data.frame()
+  predict.lm[[i]]=predict(lm[[i]],newx[[i]])
+  MSE_lm_test[i]=mean((predict.lm[[i]]-covid_test[[i]]$newcases_p)^2) # test MSE  
+  AIC_lm[i]=AIC(lm[[i]])
+  }
+lm[[1]] %>% summary()
+AIC(lm[[1]])
+
+for (i in 1:5) {
+  cat("lm MSE = ",MSE_lm_test[i],"\n")
+  cat("lm AIC = ",AIC_lm[i],"\n")
+}
+
+## Average Simple Linear Model
+avg.lm=MuMIn::model.avg(lm)
+avg.lm %>% summary()
+#miWQS::combine.AIC(c(AIC_lm))
+#miWQS::combine.AIC(c(-7827.429,-7749.431,-7816.305,-7785.270,-7759.620))
+#-7787.6 +- 34.1
+total_test=rep(NA,15)
+for (i in 1:5) {
+  total_test=rbind(total_test,
+                     data.frame(rep(1,nrow(covid_test[[i]])),
+                           covid_test[[i]]$stringency_index,
+                           covid_test[[i]]$tmp,covid_test[[i]]$exchange,
+                           covid_test[[i]]$Interest_Rate,covid_test[[i]]$GDP,
+                           covid_test[[i]]$unemployment,covid_test[[i]]$vaccines_count_p,
+                           covid_test[[i]]$tests_p,covid_test[[i]]$recovered_p,
+                           covid_test[[i]]$deaths_p,covid_test[[i]]$vaccines_NA,
+                           covid_test[[i]]$deaths_p*covid_test[[i]]$recovered_p,
+                           covid_test[[i]]$GDP*covid_test[[i]]$unemployment*
+                             covid_test[[i]]$exchange*covid_test[[i]]$Interest_Rate,
+                           covid_test[[i]]$newcases_p))
+}
+total_test<-total_test[-1,]
+colnames(total_test)<-c("(Intercept)","stringency_index","tmp","exchange","Interest_Rate","GDP","unemployment","vaccines_count_p","tests_p","recovered_p","deaths_p","vaccines_NA","deaths_p*recovered_p","GDP*unemployment*exchange*Interest_Rate","newcases_p")
+
+mean_predict=predict(avg.lm,total_test[,-15])
+mean_MSE_test=mean((mean_predict-total_test$newcases_p)^2) # test MSE   
+cat("Average Linear MSE = ", mean_MSE_test,"\n")
+
+
+# Plot
+mean_predict_1=mean_predict[1:180]
+test_pl <- covid_test[[1]]
+test_pl$predict.linear <- mean_predict_1 %>% as.vector()
+pl<-test_pl[test_pl$id == "MEX", ]
+p1<-ggplot(aes(x = date2,group=1), data = pl) + 
+  geom_line(aes(y = newcases_p,color = "Actual"))+
+  geom_line(aes(y = predict.linear,color = "Predict"))+
+  labs(title="(a) Average Linear Model Performance (Mexico)",x="Time (year - week of the year)",y="New Cases Proportion (%)")+
+  theme_minimal()+
+  theme(axis.text.x=element_text(angle = 90, vjust = 0.5, hjust=1),
+        plot.title=element_text(hjust=0.5,size=12,face="bold"),
+        axis.title.y=element_text(size=10),
+        axis.title.x=element_text(size=10),
+        legend.text=element_text(size=10),
+        legend.title=element_text(size=10))
+pl<-test_pl[test_pl$id == "COL", ]
+p2<-ggplot(aes(x = date2,group=1), data = pl) + 
+  geom_line(aes(y = newcases_p,color = "Actual"))+
+  geom_line(aes(y = predict.linear,color = "Predict"))+
+  labs(title="(b) Average Linear Model Performance (Colombia)",x="Time (year - week of the year)",y="New Cases Proportion (%)")+
+  theme_minimal()+
+  theme(axis.text.x=element_text(angle = 90, vjust = 0.5, hjust=1),
+        plot.title=element_text(hjust=0.5,size=12,face="bold"),
+        axis.title.y=element_text(size=10),
+        axis.title.x=element_text(size=10),
+        legend.text=element_text(size=10),
+        legend.title=element_text(size=10))
+
+p1+p2
+
+```
+
+
+
+## Function of AIC & BIC
+```{r}
+glmnet_cv_aicc <- function(fit, lambda = 'lambda.1se'){
+  whlm <- which(fit$lambda == fit[[lambda]])
+  with(fit$glmnet.fit,
+       {
+         tLL <- nulldev - nulldev * (1 - dev.ratio)[whlm]
+         k <- df[whlm]
+         n <- nobs
+         return(list('AICc' = - tLL + 2 * k + 2 * k * (k + 1) / (n - k - 1),
+                     'BIC' = log(n) * k - tLL))
+       })
+}
+```
+
+
+## Linear Regression (Ridge) with interaction for Imputation Dataset 1-5
+```{r}
+covid=list(covid_1,covid_2,covid_3,covid_4,covid_5)
+
+covid_train=list()
+covid_test=list()
+x=list()
+y=list()
+fit=list()
+cv.fit=list()
+coefficients=list()
+newx=list()
+predict=list()
+for (i in 1:5) {
+  set.seed(2021)
+  covid[[i]]$split<-sample.split(covid[[i]]$newcases_p,SplitRatio=0.8)
+  covid_train[[i]]<-covid[[i]] %>% filter(split==T)
+  covid_test[[i]]<-covid[[i]] %>% filter(split==F)
+  x[[i]]<-model.matrix(newcases_p~.+
+                         deaths_p:recovered_p+
+                         exchange:GDP:Interest_Rate:unemployment,
+                       data=cbind(covid_train[[i]][8],covid_train[[i]][,10:15],
+                                  covid_train[[i]][,18:22]) %>% as.data.frame())
+  y[[i]]<-covid_train[[i]]$newcases_p
+  fit[[i]]<-glmnet(x=x[[i]],y=y[[i]],family='gaussian',type.measure='mse',alpha=0)
+  #set.seed(2021)
+  cv.fit[[i]]<-cv.glmnet(x=x[[i]],y=y[[i]],family='gaussian',
+                         type.measure='mse',nfolds=10,alpha=0) # 1=lasso,0=ridge
+  coefficients[[i]]<-coef(fit[[i]],s=cv.fit[[i]]$lambda.min) # extract coefficients at a single value of lambda
+  newx[[i]]<-model.matrix(newcases_p~.+vaccines_count_p:recovered_p+GDP:unemployment,
+             data=cbind(covid_test[[i]][8],covid_test[[i]][,10:15],
+                        covid_test[[i]][,18:22]) %>% as.data.frame())
+  predict[[i]]<-predict(cv.fit[[i]],newx=newx[[i]],s="lambda.min")
+}
+
+print(cv.fit)
+
+
+MSE_test=rep(NA,5)
+SSE_test=rep(NA,5)
+TSS_test=rep(NA,5)
+SSR_test=rep(NA,5)
+R2_test=rep(NA,5)
+Adj_R2_test=rep(NA,5)
+AIC_test=rep(NA,5)
+BIC_test=rep(NA,5)
+n=NA
+d=NA
+for (i in 1:5) {
+  plot(fit[[i]],label=TRUE)
+  print(which(coefficients[[i]]!=0))
+  #print(coefficients[[i]][which(coefficients[[i]]!=0)])
+  plot(cv.fit[[i]])
+  MSE_test[i]=mean((predict[[i]]-covid_test[[i]]$newcases_p)^2) # test MSE
+  #ModelMetrics::mse(predict[[1]],covid_test[[1]]$newcases_p)
+  n=nrow(covid_test[[i]])
+  d=ncol(covid_test[[i]])-1
+  AIC_test[i] <- glmnet_cv_aicc(cv.fit[[i]],lambda='lambda.min')$AICc #'lambda.1se'
+  BIC_test[i] <- glmnet_cv_aicc(cv.fit[[i]],lambda='lambda.min')$BIC #'lambda.1se'
+}
+
+
+for (i in 1:5) {
+  print(coefficients[[i]])
+  cat("Linear (Ridge) MSE = ",MSE_test[i],"\n")
+  cat("Linear (Ridge) AIC = ",AIC_test[i],"\n")
+  cat("Linear (Ridge) BIC = ",BIC_test[i],"\n")
+}
+
+
+
+
+# p-value of ridge
+fit.ridge<-ridge.proj(x=cbind(covid_train[[1]][8],covid_train[[1]][,10:15],
+                        covid_train[[1]][,18:19],covid_train[[1]][,21:22],
+                        covid_train[[1]]$vaccines_count_p*covid_train[[1]]$recovered_p,
+                        covid_train[[1]]$GDP*covid_train[[1]]$unemployment),
+                      y=covid_train[[1]]$newcases_p,
+                      standardize=T,
+                      family = "gaussian")
+which(fit.ridge$pval.corr < 0.05)
+
+```
+
+
+## Average Linear Model (Ridge)
+```{r}
+miWQS::combine.AIC(c(AIC_test))
+
+mean_coefficients=(coefficients[[1]]+coefficients[[2]]+coefficients[[3]]+coefficients[[4]]+coefficients[[5]])/5
+
+total_test=rep(NA,nrow(mean_coefficients))
+for (i in 1:5) {
+  total_test=rbind(total_test,
+                     cbind(rep(1,nrow(covid_test[[i]])),
+                           rep(1,nrow(covid_test[[i]])),
+                           covid_test[[i]][8],
+                           covid_test[[i]][,10:15],
+                           covid_test[[i]][,18:19],
+                           covid_test[[i]][,21:22],
+                           covid_test[[i]]$vaccines_count_p*covid_test[[i]]$recovered_p,
+                           covid_test[[i]]$GDP*covid_test[[i]]$unemployment,
+                           covid_test[[i]]$newcases_p))
+}
+total_test<-total_test[-1,]
+colnames(total_test)<-c("(Intercept)","1","stringency_index","tmp","exchange","GDP","Interest_Rate","unemployment","vaccines_NA","vaccines_count_p","tests_p","recovered_p","deaths_p","vaccines_count_p*recovered_p","GDP*unemployment","newcases_p")
+
+
+mean_predict=total_test[,-16] %>% as.matrix() %*% mean_coefficients
+mean_MSE_test=mean((mean_predict-total_test$newcases_p)^2) # test MSE   
+
+print(mean_coefficients)
+cat("Average Linear (Ridge) MSE = ", mean_MSE_test,"\n")
+
+
+mean_predict_1=mean_predict[1:180]
+# plot
+test_pl <- covid_test[[1]]
+test_pl$predict.linear <- mean_predict_1 %>% as.vector()
+
+pl<-test_pl[test_pl$id == "AUS", ]
+ggplot(aes(x = date2,group=1), data = pl) + 
+  geom_line(aes(y = newcases_p,color = "Actual"))+
+  geom_line(aes(y = predict.linear,color = "Predict"))+
+  labs(title="Linear Regression Model Performance (Australia)",x="time (year - number of week in the year)",y="New Cases Proportion (%)")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),plot.title = element_text(hjust=0.5))
+
+
+pl<-test_pl[test_pl$id == "CAN", ]
+ggplot(aes(x = date2,group=1), data = pl) + 
+  geom_line(aes(y = newcases_p,color = "Actual"))+
+  geom_line(aes(y = predict.linear,color = "Predict"))+
+  labs(title="Linear Regression Model Performance (Canada)",x="time (year - number of week in the year)",y="New Cases Proportion (%)")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),plot.title = element_text(hjust=0.5))
+
+
+```
+
+
+## Polynomial(LASSO) for Imputed Dataset 1
+```{r}
+X.train <- model.matrix(newcases_p ~ . + 
+                 I(stringency_index ^2) + 
+                 I(tmp^2) + 
+                 I(exchange^2) + 
+                 I(GDP^2) + 
+                 I(Interest_Rate^2) + 
+                 I(unemployment ^2) + 
+                 I(vaccines_count_p^2) + 
+                 I(tests_p^2) +
+                 I(recovered_p^2) + 
+                 I(deaths_p^2)+
+                 deaths_p*recovered_p+
+                 GDP*unemployment*exchange*Interest_Rate,
+                 cbind(covid_train[[1]][8],covid_train[[1]][,10:15],covid_train[[1]][,18:22]))
+y.train <- covid_train[[1]]$newcases_p
+
+X.test <- model.matrix(newcases_p ~ . + 
+                 I(stringency_index ^2) + 
+                 I(tmp^2) + 
+                 I(exchange^2) + 
+                 I(GDP^2) + 
+                 I(Interest_Rate^2) + 
+                 I(unemployment ^2) + 
+                 I(vaccines_count_p^2) + 
+                 I(tests_p^2) +
+                 I(recovered_p^2) + 
+                 I(deaths_p^2)+
+                 deaths_p*recovered_p+
+                 GDP*unemployment*exchange*Interest_Rate,
+                 cbind(covid_test[[1]][8],covid_test[[1]][,10:15],covid_test[[1]][,18:22]))
+y.test <- covid_test[[1]]$newcases_p
+
+
+# fit LASSO
+cv.LASSO <-  cv.glmnet(X.train, y.train, alpha = 1) 
+# Select lambda that minimizes training MSE
+opt.lambda.LASSO <- cv.LASSO$lambda.min 
+# refit the model using optimal lambda
+refit.LASSO <- glmnet(X.train, y.train, alpha = 1, lambda = opt.lambda.LASSO)
+coef(refit.LASSO)
+
+# make predictions
+LASSO.predict <-  predict(refit.LASSO, X.test, s = opt.lambda.LASSO )
+# calculate the MSE
+MSE.LASSO <- sum((y.test-LASSO.predict)^2)/length(y.test)
+cat("MSE LASSO = ", MSE.LASSO,"\n")
+
+# calculate the AIC
+tLL <- refit.LASSO$nulldev - deviance(refit.LASSO)
+k <- refit.LASSO$df
+n <- refit.LASSO$nobs
+AIC <- -tLL+2*k+2*k*(k+1)/(n-k-1)
+cat("AIC LASSO = ", AIC,"\n")
+
+# calculate the BIC
+BIC<-log(n)*k - tLL
+cat("BIC LASSO = ", BIC,"\n")
+```
+
+
+## Linear Spline with interaction for Imputation Dataset 1-5
+```{r}
+spline.fit=list()
+coefficients_spline=list()
+predict.spline=list()
+AIC_spline=rep(NA,5)
+MSE_spline_test=rep(NA,5)
+for (i in 1:5) {
+  spline.fit[[i]]<-lm(newcases_p~bs(exchange,knots=c(800,4000))+
+                      bs(Interest_Rate, knots=c(1,2),degree=1)+
+                      bs(GDP,knots=c(30000,55000),degree=1)+stringency_index+
+                      tmp+unemployment+vaccines_NA+vaccines_count_p+
+                      tests_p+recovered_p+deaths_p+
+                      recovered_p*deaths_p+
+                      bs(GDP,knots=c(30000,55000),degree=1)*unemployment*exchange*Interest_Rate,
+                      data=covid_train[[i]])
+  coefficients_spline[[i]]<-coef(spline.fit[[i]])
+  #plot(spline.fit[[i]])
+  newx[[i]]<-cbind(covid_test[[i]][8],covid_test[[i]][,10:15],
+                   covid_test[[i]][,18:19],covid_test[[i]][,21:22]) %>% as.data.frame()
+  predict.spline[[i]]=predict(spline.fit[[i]],newx[[i]])
+  MSE_spline_test[i]=mean((predict.spline[[i]]-covid_test[[i]]$newcases_p)^2) # test MSE  
+  AIC_spline[i]=AIC(spline.fit[[i]])
+}
+
+
+for (i in 1:5) {
+  print(coefficients_spline[[i]])
+  cat("Linear Spline MSE = ",MSE_spline_test[i],"\n")
+  cat("Linear Spline AIC = ",AIC_spline[i],"\n")
+}
+
+
+avg.spline=MuMIn::model.avg(spline.fit) %>% summary() #beta="none"/"sd"/"partial.sd"
+avg.spline
+mean_predict.spline=predict(avg.spline,total_test[,-16]) 
+mean_MSE_test.spline=mean((mean_predict.spline-total_test$newcases_p)^2) # test MSE 
+combine.AIC(c(AIC_spline))
+#-7878.1 +- 42.9
+
+print(avg.spline$coefficients)
+cat("Linear Spline_1 MSE = ", mean_MSE_test.spline,"\n")
+
+
+
+# plot
+mean_predict_1.spline=mean_predict.spline[1:180]
+test_pl<-covid_test[[1]]
+test_pl$predict.spline <- mean_predict_1.spline %>% as.vector()
+
+pl<-test_pl[test_pl$id == "MEX", ]
+p3<-ggplot(aes(x = date2,group=1), data = pl) + 
+  geom_line(aes(y = newcases_p,color = "Actual"))+
+  geom_line(aes(y = predict.spline,color = "Predict"))+
+  labs(title="(a) Average Linear Spline Model Performance (Mexico)",x="Time (year - week of the year)",y="New Cases Proportion (%)")+
+  theme_minimal()+
+  theme(axis.text.x=element_text(angle = 90, vjust = 0.5, hjust=1),
+        plot.title=element_text(hjust=0.5,size=12,face="bold"),
+        axis.title.y=element_text(size=10),
+        axis.title.x=element_text(size=10),
+        legend.text=element_text(size=10),
+        legend.title=element_text(size=10))
+
+
+pl<-test_pl[test_pl$id == "CAN", ]
+p4<-ggplot(aes(x = date2,group=1), data = pl) + 
+  geom_line(aes(y = newcases_p,color = "Actual"))+
+  geom_line(aes(y = predict.spline,color = "Predict"))+
+  labs(title="(b) Average Linear Spline Model Performance (Canada)",x="Time (year - week of the year)",y="New Cases Proportion (%)")+
+  theme_minimal()+
+  theme(axis.text.x=element_text(angle = 90, vjust = 0.5, hjust=1),
+        plot.title=element_text(hjust=0.5,size=12,face="bold"),
+        axis.title.y=element_text(size=10),
+        axis.title.x=element_text(size=10),
+        legend.text=element_text(size=10),
+        legend.title=element_text(size=10))
+
+p3+p4
+```
+
+
+
+
+
+
+
+
