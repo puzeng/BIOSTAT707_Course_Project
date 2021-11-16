@@ -1,0 +1,97 @@
+---
+title: "EDA-covid"
+author: "Yuqing Liu"
+date: "9/28/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(corrplot)
+library(lubridate)
+library(patchwork)
+library(dplyr)
+```
+
+
+```{r}
+covid_full=read.csv('/Users/yuqingliu/Desktop/covid_weekly_color.csv')
+
+data<-covid_full %>% dplyr::select(id,date2,vaccines,tests,confirmed,recovered,deaths,Color_by_id)
+data
+max(data$date2)
+min(data$date2)
+
+top_confirmed=covid_full %>% group_by(id) %>% summarise(max=max(confirmed,na.rm=T)) %>% arrange(desc(max)) %>% head(5)
+top_confirmed
+top_vaccines=covid_full %>% group_by(id) %>% summarise(max=max(vaccines,na.rm=T)) %>% arrange(desc(max)) %>% head(5) 
+top_vaccines
+
+#data$days<-data$date-min(data$date)
+#data$mortality_rate=data$deaths/data$confirmed
+#data$recovery_rate=data$recovered/data$confirmed
+
+covid_full %>% filter(id %in% top_confirmed$id | id %in% top_vaccines$id) %>% select(id,administrative_area_level_1,Color_by_id) %>% unique()
+
+```
+
+
+```{r}
+sum_covid <- data %>% group_by(date2) %>% 
+  summarise(vaccines=sum(vaccines,na.rm=T),tests=sum(tests,na.rm=T),
+            confirmed=sum(confirmed,na.rm=T),recovered=sum(recovered,na.rm=T),
+            deaths=sum(deaths,na.rm=T))
+p1<-ggplot(data=sum_covid,mapping=aes(x=vaccines,y=confirmed)) +
+  geom_point(alpha=1,color='black',size=0.5) + 
+  theme_minimal() + 
+  theme(axis.title.y=element_text(angle=90,size=10)) +
+  labs(title='(a) Scatter Plot of number of \n Confirmed Cases and Vaccine Doses',
+       x='Number of administered vaccine dose',y='Number of confirmed cases') +
+  theme(plot.title=element_text(size=12,face="bold"),
+        axis.title.y=element_text(size=10),
+        axis.title.x=element_text(size=10))
+
+
+plot.data=covid_full %>% filter(id %in% top_confirmed$id) %>% filter(is.na(confirmed)==F)
+matrix(sort(unique(plot.data$date2)))
+p2<-ggplot(data=plot.data) + 
+  geom_line(aes(x=factor(date2),y=confirmed,group=id,color=id))+
+  scale_color_manual(name=c("Country"),
+                     labels=c("BRA","GBR","IND","RUS","USA"),
+                     values=c("#022d72","#510b7c","#011c60","#8e042d","#bf13dd"))+
+  scale_x_discrete(breaks=c("2020-03","2020-21","2020-39","2021-04","2021-22","2021-39"))+
+  labs(title='(b) Top five countries with the largest \n confirmed cases',
+       x='Time (year - week of the year)',y='Number of administered confirmed cases')+
+  theme_minimal()+
+  theme(plot.title=element_text(size=12,face="bold"),
+        axis.title.y=element_text(size=10),
+        axis.title.x=element_text(size=10),
+        legend.text=element_text(size=10),
+        legend.title=element_text(size=10))
+
+
+plot.data=covid_full %>% filter(id %in% top_vaccines$id) %>% filter(is.na(vaccines)==F)
+matrix(sort(unique(plot.data$date2)))
+p3<-ggplot(data=plot.data) + 
+  geom_line(aes(x=factor(date2),y=vaccines,group=id,color=id))+
+  scale_color_manual(name=c("Country"),
+                     labels=c("BRA","IDN","IND","JPN","USA"),
+                     values=c("#022d72","#480087","#011c60","#52a80b","#bf13dd"))+
+  scale_x_discrete(breaks=c("2020-50","2021-05","2021-13","2021-21","2021-30","2021-39"))+
+  labs(title='(c) Top five countries with the largest \n vaccine doses',
+       x='Time (year - week of the year)',y='Number of administered vaccine doses')+
+  theme_minimal()+
+  theme(plot.title=element_text(size=12,face="bold"),
+        axis.title.y=element_text(size=10),
+        axis.title.x=element_text(size=10),
+        legend.text=element_text(size=10),
+        legend.title=element_text(size=10))
+
+
+p1+p2+p3+plot_layout(ncol=3,widths=c(1,1,1),heights=1)
+```
+
+
+
+
