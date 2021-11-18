@@ -31,6 +31,8 @@ library(reshape2)       # Transform fat-table to long-table
 ### Base data set (COVID19-country)
 ```{r}
 covid = covid19(level = 1)
+
+write.csv(covid,"covid.csv")
 ```
 
 ### Exchange rate data sets
@@ -138,11 +140,6 @@ dt_exchange_long = dt_exchange_long %>%
 # COVID19 data set is considered as base table
 covid_exchange = left_join(x = covid, y = dt_exchange_long, 
                            by = c("id","date"))
-```
 
-```{r}
-# Number of country with exchange rate
-tmp = covid_exchange %>% select(id, exchange) %>% na.omit()
-length(unique(tmp$id))
+write.csv(covid_exchange, "covid_exchange.csv")
 ```
-

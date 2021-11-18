@@ -1,0 +1,75 @@
+---
+title: "Merge_datasets"
+author: "Peijin Wang"
+date: "9/26/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(here)
+library(COVID19)
+```
+
+
+```{r}
+covid = covid19(level = 1)
+```
+
+```{r}
+exchange = read.csv(here("Seperate_data/covid_exchange.csv"))[,c("id","date","exchange")]
+exchange$date = as.Date(as.character(exchange$date), format = "%Y-%m-%d")
+
+
+GDP = read.csv(here("Seperate_data/covid19_GDP.csv"))[,c("id","date","GDP")]
+GDP$date = as.Date(as.character(GDP$date), format = "%Y-%m-%d")
+GDP$GDP = as.numeric(GDP$GDP )
+
+tmp = read.csv(here("Seperate_data/covid19_temperature.csv"))[,c("id","date","tmp")]
+tmp$date = as.Date(as.character(tmp$date), format = "%Y-%m-%d")
+
+
+
+```
+
+```{r}
+unemp_raw = read.csv(here("Seperate_data/covid19_unemployment.csv"))[,c("id","date","unemployment")]
+#unemp$date = as.Date(as.character(unemp$date), format = "%Y-%m-%d")
+library(lubridate)
+unemp_raw$month = month(unemp_raw$date)
+unemp_raw$year = year(unemp_raw$date)
+
+unemp_raw = unemp_raw[!duplicated(unemp_raw[,c(1,4,5)]),]
+
+
+unemp = covid %>% mutate(month = month(date), year = year(date)) %>% left_join(unemp_raw, by = c("month", "year","id")) %>% mutate(date = date.x) %>% select(id, date, unemployment)
+```
+
+```{r}
+interest = read.csv(here("Seperate_data/covid19_interest_rate.csv"),
+                    na.strings = c('-',"NA"))[,c("id","date","Interest_Rate")]
+interest$date = as.Date(as.character(interest$date), format = "%Y-%m-%d")
+
+interest = interest %>% filter(id != "COG")
+
+interest$Interest_Rate = as.numeric(interest$Interest_Rate)
+
+```
+
+```{r}
+covid_full = covid %>% 
+  left_join(exchange, by = c("id","date")) %>% 
+  left_join(GDP, by = c("id","date")) %>% 
+  left_join(interest, by = c("id","date")) %>% 
+  left_join(tmp, by = c("id","date")) %>% 
+  left_join(unemp, by = c("id","date"))
+```
+
+
+```{r}
+write.csv(covid_full, "covid_full.csv")
+```

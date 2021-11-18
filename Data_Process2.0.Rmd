@@ -1,0 +1,113 @@
+---
+title: "Data_Process"
+author: "Peijin Wang"
+date: "11/06/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(mice)
+```
+
+```{r}
+# Load in original data set
+covid_full = read.csv("covid_full.csv")
+covid_full$date = as.Date(as.character(covid_full$date), format = "%Y-%m-%d")
+```
+
+## Generate weekly data
+```{r}
+covid_full2 = covid_full %>% mutate(date2 = strftime(date,format = "%Y-%W",tz = "CET")) %>% 
+  select(X, id, administrative_area_level_1,date2,
+         vaccines, tests, confirmed, recovered, deaths, stringency_index,population,tmp,
+         exchange,GDP,Interest_Rate,unemployment) %>% 
+  group_by(id,administrative_area_level_1,date2) %>% 
+  summarise_at(vars("vaccines","tests","confirmed","recovered","deaths",
+  "stringency_index","population","tmp","exchange","GDP","Interest_Rate","unemployment"),funs(mean(., na.rm = TRUE)))
+
+sapply(X = covid_full2, FUN = function(x) sum(is.na(x))/18089)
+
+x = covid_full2 %>% group_by(id) %>% summarise(n1 = sum(is.na(exchange)),
+                                               n2 = sum(is.na(unemployment)), 
+                                               n3 = sum(is.na(vaccines)))
+```
+
+```{r}
+write.csv(covid_full2,"covid_weekly.csv")
+```
+
+
+```{r}
+covid_weekly = read.csv("covid_weekly.csv")
+```
+
+## Encode variable "vaccines"
+```{r}
+# Encode variable "vaccines" into two variables vaccines_NA and vaccines_count
+# vaccine_NA: 0 = vaccines is NA; 1 = vaccine is not NA
+
+covid_weekly$vaccines_NA = ifelse(is.na(covid_weekly$vaccines),0,1)
+covid_weekly$vaccines_count = ifelse(is.na(covid_weekly$vaccines),0,covid_weekly$vaccines)
+
+covid_weekly$newcases = covid_weekly$confirmed - lag(covid_weekly$confirmed,
+                                                     default = first(covid_weekly$confirmed))
+
+covid_weekly2 = covid_weekly %>% 
+  mutate(vaccines_count_p = vaccines_count/population,
+         tests_p = tests/population,
+         newcases_p = newcases/population,
+         recovered_p = recovered/population,
+         deaths_p = deaths/population)
+```
+
+
+## Select countries with less NAs
+```{r}
+# Select countries with less missing
+
+threshold = 0.40
+
+country = covid_weekly2 %>% 
+  group_by(id) %>% 
+  select(-c("X","vaccines")) %>% 
+  summarise_all(funs(mean(is.na(.)))) %>% 
+  column_to_rownames(var = "id") %>% 
+  filter_all(all_vars(. < threshold)) %>% 
+  rownames()
+
+covid_weekly3 = covid_weekly2 %>% 
+  filter(id %in% country) %>% 
+  select(-c("X","vaccines"))
+
+```
+
+## Missing value imputation
+```{r}
+# Multiple imputation, m = times
+mice_data = mice(covid_weekly3, m = 5, method = "cart")
+
+# Print complete data sets
+covid_1 = complete(mice_data,1)
+covid_2 = complete(mice_data,2)
+covid_3 = complete(mice_data,3)
+covid_4 = complete(mice_data,4)
+covid_5 = complete(mice_data,5)
+
+write.csv(covid_1, "covid_1.csv",row.names = F)
+write.csv(covid_2, "covid_2.csv",row.names = F)
+write.csv(covid_3, "covid_3.csv",row.names = F)
+write.csv(covid_4, "covid_4.csv",row.names = F)
+write.csv(covid_5, "covid_5.csv",row.names = F)
+```
+
+
