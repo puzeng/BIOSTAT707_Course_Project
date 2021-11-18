@@ -1,0 +1,110 @@
+---
+title: "Baseline_Weekly_Data"
+author: "Pu Zeng"
+date: "11/6/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+library(tidyverse)
+library(ggplot2)
+library(magrittr)
+library(stats)
+library(reshape2)
+library(vtable)
+library(kableExtra)
+library(lubridate)
+library(randomcoloR)
+library(patchwork)
+library(gridExtra)
+library(flextable)
+```
+
+```{r load data, message=FALSE, warning=FALSE}
+covid_weekly = read_csv('https://raw.githubusercontent.com/puzeng/BIOSTAT707_Course_Project/main/covid_weekly.csv')
+covid_weekly = covid_weekly[, -1]
+covid_weekly$tmp = covid_weekly$tmp/10
+```
+
+
+```{r Summary Stats Tbl}
+df = sumtable(covid_weekly,
+         summ = c('notNA(x)', 'mean(x)', 'sd(x)', 'propNA(x)','IQR(x) * 1.5 + pctile(x)[75]' , 'max(x)'),
+         summ.names = c('N', 'Mean', "SD", 'Missing Values (%)','Upper Bound', 'Max'),
+         align = 'center',
+         col.align = 'center',
+         col.breaks = 6,
+         digits = 3, fixed.digits = TRUE, out = 'return')
+df_1 = df[, 1:7]
+df_2 = df[, 8:ncol(df)]
+Types = rep("Continuous", 6)
+
+df_1["Types"] = Types
+
+df_1["Descriptions"] = c("Number of administered doses", "Number of administered tests",
+                         "Number of confirmed cases", "Number of recovered patients",
+                         "Number of deaths", 
+                         "Stringency of governmental responses")
+df_2["Types"] = Types
+df_2["Descriptions"] = c("Total population", 
+                         "Average temperature", 
+                         "Exchange rate to SDR by countries",
+                         "Yearly GDP in USD",
+                         "Yearly interest rate (%)",
+                         "Monthly unemployment rate (%)")
+
+
+#Reorder the columns
+df_1 = df_1[, c(1, ncol(df_1), ncol(df_1)-1, 4:ncol(df_1)-2)]
+df_2 = df_2[, c(1, ncol(df_2), ncol(df_2)-1, 4:ncol(df_2)-2)]
+
+df_new = rbind.data.frame(df_1, df_2)
+
+ft = flextable(df_new) %>% 
+    align(align = "center", part = "all") %>% 
+    height(height = 0.01, unit = "in") %>% 
+    width(width = 15, unit = "in") %>% 
+    fontsize(size = 14, part = "all")
+ft
+#png("Demographics_TBL.png", 
+    #width     = 14,
+    #height    = 10,
+    #units     = "in",
+    #res = 1200,
+    #bg = "white")
+
+#grid.table(ft)
+#dev.off()
+```
+
+
+```{r}
+set.seed(2021)
+color_scheme = randomColor(count = length(unique(covid_weekly$id)),
+                           hue = 'random', luminosity = 'dark')
+
+covid_weekly$Color_by_id = color_scheme
+```
+
+
+
+```{r}
+library(Hmisc)
+covid_weekly = read_csv("covid_weekly_color.csv")
+```
+
+```{r}
+
+hist.data.frame(covid_weekly[, 4:15], na.big = FALSE, nclass = 20)
+```
+
+
+```{r}
+pairs(confirmed~., data = covid_weekly[, 4:15])
+```
+
