@@ -1,0 +1,80 @@
+Last login: Sun Nov 14 16:18:27 on ttys001
+puzeng@Pus-MacBook-Pro ~ % pwd 
+/Users/puzeng
+puzeng@Pus-MacBook-Pro ~ % ls
+Applications		Downloads		Pictures
+Creative Cloud Files	Library			Public
+Desktop			Movies			requirements.txt
+Documents		Music
+puzeng@Pus-MacBook-Pro ~ % cd Desktops     
+cd: no such file or directory: Desktops
+puzeng@Pus-MacBook-Pro ~ % cd Desktop 
+puzeng@Pus-MacBook-Pro Desktop % LS
+814.pdf					Hints_Q1_Q8.pdf
+BIOSTAT 701 TA				JVI.02428-16_zjv999182528s1.pdf
+BIOSTAT 707				Master's Project
+BIOSTAT 710				Pu Zeng
+BIOSTAT 719				R Studio Shortcut.png
+BIOSTAT 823				combined_all (1).fasta
+DUKE					combined_all.fasta
+DUKE CFAR 2021				similar_seq.fasta
+Distribution_summary.pdf		~$AR_Talk_Notes.docx
+Draft.docx				~$OSTAT707_Project_Proposal.docx
+Duke_PPT_Template.pptx			~$ssion4_Wang.docx
+GS 731
+puzeng@Pus-MacBook-Pro Desktop % cd 'BIOSTAT 707'
+puzeng@Pus-MacBook-Pro BIOSTAT 707 % ls
+BIOSTAT707_Course_Project	Homework2
+BIOSTAT707_Practice		Homework3
+Demo_Files			In Class Demo
+Homework1			Lecture Slides
+puzeng@Pus-MacBook-Pro BIOSTAT 707 % cd BIOSTAT707_Course_Project 
+puzeng@Pus-MacBook-Pro BIOSTAT707_Course_Project % ls
+20210914_Zeng_Pu_group.docx	Demographics_TBL.png
+BIOSTAT707_Course_Project.Rproj	EDA_Project_Proposal.Rmd
+Baseline_Weekly_Data.Rmd	Stringency_Index_Time.png
+Classification.Rmd		covid19_GDP.csv
+Combine_GDP_COVID19.Rmd		covid_full.csv
+Demographic_TBL.png		covid_weekly_color.csv
+Demographics_TBL.jpeg		gdp-per capita.xls
+puzeng@Pus-MacBook-Pro BIOSTAT707_Course_Project % git status
+On branch pu-zeng
+Your branch is up to date with 'origin/pu-zeng'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   Baseline_Weekly_Data.Rmd
+	modified:   Classification.Rmd
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.DS_Store
+	.gitignore
+	20210914_Zeng_Pu_group.docx
+	BIOSTAT707_Course_Project.Rproj
+	Demographic_TBL.png
+	Demographics_TBL.jpeg
+	Demographics_TBL.png
+	Stringency_Index_Time.png
+	covid_full.csv
+	covid_weekly_color.csv
+	gdp-per capita.xls
+
+no changes added to commit (use "git add" and/or "git commit -a")
+puzeng@Pus-MacBook-Pro BIOSTAT707_Course_Project % git add Classification.Rmd 
+puzeng@Pus-MacBook-Pro BIOSTAT707_Course_Project % git commit -m "Update the grid search method"
+[pu-zeng e1d3cd4] Update the grid search method
+ 1 file changed, 177 insertions(+)
+puzeng@Pus-MacBook-Pro BIOSTAT707_Course_Project % git push -u origin pu-zeng
+Enumerating objects: 5, done.
+Counting objects: 100% (5/5), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (3/3), 1.52 KiB | 1.52 MiB/s, done.
+Total 3 (delta 2), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (2/2), completed with 2 local objects.
+To https://github.com/puzeng/BIOSTAT707_Course_Project.git
+   ab9a1fb..e1d3cd4  pu-zeng -> pu-zeng
+Branch 'pu-zeng' set up to track remote branch 'pu-zeng' from 'origin'.
+puzeng@Pus-MacBook-Pro BIOSTAT707_Course_Project % 
