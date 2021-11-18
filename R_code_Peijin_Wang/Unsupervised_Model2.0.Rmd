@@ -1,0 +1,393 @@
+---
+title: "Unsupervised_Model"
+author: "Peijin Wang"
+date: "11/7/2021"
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+```{r}
+library(tidyverse)
+library(ggfortify)
+library(patchwork)
+
+library(ggplot2)
+library(dendextend)
+
+
+
+library(matrixStats)
+library(modeest)
+
+library(kableExtra)
+```
+
+#### Read data set
+```{r}
+covid_1 = read.csv("COVID_Complete/covid_1.csv")
+covid_2 = read.csv("COVID_Complete/covid_2.csv")
+covid_3 = read.csv("COVID_Complete/covid_3.csv")
+covid_4 = read.csv("COVID_Complete/covid_4.csv")
+covid_5 = read.csv("COVID_Complete/covid_5.csv")
+```
+
+```{r}
+# Scale the data set and select variables of interest
+# NO OUTCOME VARIABLE
+
+covid_1_scale = covid_1 %>% 
+  select(vaccines_NA,vaccines_count_p,tests_p,recovered_p,deaths_p,
+         stringency_index,tmp,exchange,GDP,Interest_Rate,unemployment) %>% scale()
+
+covid_2_scale = covid_2 %>% 
+  select(vaccines_NA,vaccines_count_p,tests_p,recovered_p,deaths_p,
+         stringency_index,tmp,exchange,GDP,Interest_Rate,unemployment) %>% scale()
+
+covid_3_scale = covid_3 %>% 
+  select(vaccines_NA,vaccines_count_p,tests_p,recovered_p,deaths_p,
+         stringency_index,tmp,exchange,GDP,Interest_Rate,unemployment) %>% scale()
+
+covid_4_scale = covid_4 %>% 
+  select(vaccines_NA,vaccines_count_p,tests_p,recovered_p,deaths_p,
+         stringency_index,tmp,exchange,GDP,Interest_Rate,unemployment) %>% scale()
+
+covid_5_scale = covid_5 %>% 
+  select(vaccines_NA,vaccines_count_p,tests_p,recovered_p,deaths_p,
+         stringency_index,tmp,exchange,GDP,Interest_Rate,unemployment) %>% scale()
+
+```
+
+## PCA
+
+```{r}
+set.seed(2021)
+
+pca_1 = princomp(covid_1_scale)
+
+pca_2 = princomp(covid_2_scale)
+
+pca_3 = princomp(covid_3_scale)
+
+pca_4 = princomp(covid_4_scale)
+
+pca_5 = princomp(covid_5_scale)
+
+
+loading_1 = data.frame(as.matrix(pca_1$loadings)[1:11,])
+loading_2 = data.frame(as.matrix(pca_2$loadings)[1:11,])
+loading_3 = data.frame(as.matrix(pca_3$loadings)[1:11,])
+loading_4 = data.frame(as.matrix(pca_4$loadings)[1:11,])
+loading_5 = data.frame(as.matrix(pca_5$loadings)[1:11,])
+
+
+loading_avg = Reduce(`+`, mget(paste0("loading_", 1:5)))/5
+
+kbl(loading_avg,caption = "Average Principal Components for 5 data sets",digits = 3) %>% 
+  kable_classic(full_width = F)
+```
+
+From the summary of PCA, all five data sets have similar performance, i.e., the first 3 PCs explains about 60% of the variance. Since we only have 12 variables, then we decide not using PCA in our final model.
+```{r}
+cum.var_1 = cumsum(pca_1$sdev^2/sum(pca_1$sdev^2))
+cum.var_2 = cumsum(pca_2$sdev^2/sum(pca_2$sdev^2))
+cum.var_3 = cumsum(pca_3$sdev^2/sum(pca_3$sdev^2))
+cum.var_4 = cumsum(pca_4$sdev^2/sum(pca_4$sdev^2))
+cum.var_5 = cumsum(pca_5$sdev^2/sum(pca_5$sdev^2))
+
+cum.var = rbind(cum.var_1,cum.var_2,cum.var_3,cum.var_4,cum.var_5)
+
+kbl(cum.var,caption = "Cumulative variance for 5 data sets",digits = 3) %>% 
+  kable_classic(full_width = F)
+```
+
+Again from the biplots of PCA for five data set, the distributions are very similar. Additionally, we notice that the distribution of observations is longish rather than roundish. We decided to use hierarchical clustering in stead of K-means.
+```{r fig.width=10}
+autoplot(pca_1, data = covid_1_scale, main = "PCA for covid 1 data set") + 
+  autoplot(pca_2, data = covid_2_scale, main = "PCA for covid 2 data set") + 
+  autoplot(pca_3, data = covid_3_scale, main = "PCA for covid 3 data set") + 
+  autoplot(pca_4, data = covid_4_scale, main = "PCA for covid 4 data set") + 
+  autoplot(pca_5, data = covid_5_scale, main = "PCA for covid 5 data set")
+```
+
+## K-means clustering
+
+Plot K-means clustering results in PCA
+
+```{r}
+kmeans_1 = kmeans(covid_1_scale,3)
+cluster_1 = as.factor(kmeans_1$cluster)
+
+
+kmeans_2 = kmeans(covid_2_scale,3)
+cluster_2 = as.factor(kmeans_2$cluster)
+
+
+kmeans_3 = kmeans(covid_3_scale,3)
+cluster_3 = as.factor(kmeans_3$cluster)
+
+
+kmeans_4 = kmeans(covid_4_scale,3)
+cluster_4 = as.factor(kmeans_4$cluster)
+
+
+kmeans_5 = kmeans(covid_5_scale,3)
+cluster_5 = as.factor(kmeans_5$cluster)
+
+
+result = covid_1 %>% select(id, administrative_area_level_1, date2) %>% 
+  mutate(km_1 = cluster_1,km_2 = cluster_2,km_3 = cluster_3,
+         km_4 = cluster_4,km_5 = cluster_5) %>% 
+  filter(km_1==km_2 & km_2==km_3 & km_3==km_4 & km_4==km_5) %>% nrow()
+
+
+```
+
+## Hierarchical clusting
+
+```{r}
+# Fit hierarchical clustering model
+dist_1 = dist(covid_1_scale, method = "euclidean")
+hc_1 = hclust(dist_1, method="ward.D2")
+cut_1 = cutree(hc_1, k = 3)
+
+
+
+dist_2 = dist(covid_2_scale, method = "euclidean")
+hc_2 = hclust(dist_2, method="ward.D2")
+cut_2 = cutree(hc_2, k = 3)
+
+
+
+dist_3 = dist(covid_3_scale, method = "euclidean")
+hc_3 = hclust(dist_3, method="ward.D2")
+cut_3 = cutree(hc_3, k = 3)
+
+dist_4 = dist(covid_4_scale, method = "euclidean")
+hc_4 = hclust(dist_4, method="ward.D2")
+cut_4 = cutree(hc_4, k = 3)
+
+
+
+
+dist_5 = dist(covid_5_scale, method = "euclidean")
+hc_5 = hclust(dist_5, method="ward.D2")
+cut_5 = cutree(hc_5, k = 3)
+```
+
+#### Dendrogram
+From the dendrograms for all five dataset, we notice the clustering process is similar.
+```{r fig.width=10}
+
+dend_1 = hc_1 %>% as.dendrogram %>%
+  set("branches_k_color", k = 3) %>% set("branches_lwd", 0.7) %>%
+  set("labels_cex", 0) %>% set("labels_colors", k = 4) %>%
+  set("leaves_pch", 19) %>% set("leaves_cex", 0) %>% as.ggdend()
+
+
+dend_plot_1 =  ggplot(dend_1) +
+  labs(title = "Dendrogram for covid 1 data set") + theme_bw()
+
+
+dend_2 = hc_2 %>% as.dendrogram %>%
+  set("branches_k_color", k = 3) %>% set("branches_lwd", 0.7) %>%
+  set("labels_cex", 0) %>% set("labels_colors", k = 4) %>%
+  set("leaves_pch", 19) %>% set("leaves_cex", 0) %>% as.ggdend()
+
+
+dend_plot_2 =  ggplot(dend_2) +
+  labs(title = "Dendrogram for covid 2 data set") + theme_bw()
+
+dend_3 = hc_3 %>% as.dendrogram %>%
+  set("branches_k_color", k = 3) %>% set("branches_lwd", 0.7) %>%
+  set("labels_cex", 0) %>% set("labels_colors", k = 4) %>%
+  set("leaves_pch", 19) %>% set("leaves_cex", 0) %>% as.ggdend()
+
+dend_plot_3 =  ggplot(dend_3) + 
+  labs(title = "Dendrogram for covid 3 data set") + theme_bw()
+
+
+dend_4 = hc_4 %>% as.dendrogram %>%
+  set("branches_k_color", k = 3) %>% set("branches_lwd", 0.7) %>%
+  set("labels_cex", 0) %>% set("labels_colors", k = 4) %>%
+  set("leaves_pch", 19) %>% set("leaves_cex", 0) %>% as.ggdend() 
+
+dend_plot_4 =  ggplot(dend_4) + labs(title = "Dendrogram for covid 4 data set") + theme_bw()
+
+
+dend_5 = hc_5 %>% as.dendrogram %>%
+  set("branches_k_color", k = 3) %>% set("branches_lwd", 0.7) %>%
+  set("labels_cex", 0) %>% set("labels_colors", k = 4) %>%
+  set("leaves_pch", 19) %>% set("leaves_cex", 0) %>% as.ggdend()
+
+dend_plot_5 =  ggplot(dend_5) + labs(title = "Dendrogram for covid 5 data set") + theme_bw()
+
+
+
+dend_plot_1 + dend_plot_2 + dend_plot_3 + dend_plot_4 + dend_plot_5
+```
+
+From the output of hierarchical clustering result of different imputation data sets, about 77.7% of the observations have common clusters in all five data sets.
+
+```{r}
+hc_result = covid_1 %>% select(id, administrative_area_level_1, date2) %>% 
+  mutate(hc_1 = factor(cut_1),
+         hc_2 = factor(cut_2),
+         hc_3 = factor(cut_3),
+         hc_4 = factor(cut_4),
+         hc_5 = factor(cut_5))
+
+hc_1_re = NULL
+
+for(i in 1:nrow(hc_result)){
+  if(hc_result$hc_1[i] == "2"){
+    hc_1_re[i] = 3
+  }else if(hc_result$hc_1[i] == "3"){
+    hc_1_re[i] = 2
+  }else{
+    hc_1_re[i] = 1
+  }
+}
+
+
+hc_5_re = NULL
+
+for(i in 1:nrow(hc_result)){
+  if(hc_result$hc_1[i] == "2"){
+    hc_5_re[i] = 3
+  }else if(hc_result$hc_1[i] == "3"){
+    hc_5_re[i] = 2
+  }else{
+    hc_5_re[i] = 1
+  }
+}
+
+hc_result = hc_result %>%
+  mutate(hc_1 = factor(hc_1_re),
+         hc_5 = factor(hc_5_re))
+
+
+hc_cluster = apply(hc_result[,4:8], 1,FUN = function(x) data.frame(g1 = sum(x==1),
+                                                       g2 = sum(x==2),
+                                                       g3 = sum(x==3))) %>% 
+  bind_rows() %>% mutate(g1 = as.numeric(g1),
+                         g2 = as.numeric(g2),
+                         g3 = as.numeric(g3))
+  
+
+hc_result2 = cbind(hc_result, hc_cluster)
+
+
+hc_result2$max = rowMaxs(as.matrix(hc_result2[,9:11]))
+
+
+hc_result2 %>% filter(max==5) %>% nrow()/990
+
+# Compute the mode
+cluster = apply(hc_result2[,4:8], 1,mfv) 
+
+
+hc_result2$cluster = NULL
+for(i in 1:900){
+  hc_result2$cluster[i] = cluster[[i]]
+}
+
+
+```
+
+```{r}
+write.csv(hc_result2,"hc_cluster.csv")
+```
+
+
+```{r fig.height=3, fig.width=16}
+covid_1_scale_hc = cbind(covid_1_scale,hc_result$hc_1) %>% as.data.frame() %>% 
+  mutate(cluster = factor(V12))
+
+covid_2_scale_hc = cbind(covid_2_scale,hc_result$hc_2) %>% as.data.frame() %>% 
+  mutate(cluster = factor(V12))
+
+covid_3_scale_hc = cbind(covid_3_scale,hc_result$hc_3) %>% as.data.frame() %>% 
+  mutate(cluster = factor(V12))
+
+covid_4_scale_hc = cbind(covid_4_scale,hc_result$hc_4) %>% as.data.frame() %>% 
+  mutate(cluster = factor(V12))
+
+covid_5_scale_hc = cbind(covid_5_scale,hc_result$hc_5) %>% as.data.frame() %>% 
+  mutate(cluster = factor(V12))
+
+auto1 = autoplot(pca_1, data = covid_1_scale_hc, colour = "cluster", size = 3,
+         main = "(A) PCA for covid 1 data set") + 
+  scale_color_discrete(name = "Cluster", labels=c("Cluster 1","Cluster 2","Cluster 3")) +
+  labs(x = "Comp.1", y = "Comp.2") +
+  theme_bw() +
+  theme(plot.title = element_text(size = 26, face = "bold"),
+        axis.text.x = element_text( size = 20),
+        axis.text.y = element_text( size = 20),
+        axis.title.x = element_text( size = 20),
+        axis.title.y = element_text( size = 20),
+        legend.position = "none") 
+  
+
+auto2 = autoplot(pca_2, data = covid_2_scale_hc, colour = "cluster",size = 3,
+           main = "(B) PCA for covid 2 data set") + 
+  scale_color_discrete(name = "Cluster", labels=c("Cluster 1","Cluster 2","Cluster 3")) +
+  labs(x = "Comp.1", y = "Comp.2") +
+  theme_bw() +
+  theme(plot.title = element_text(size = 26, face = "bold"),
+        axis.text.x = element_text( size = 20),
+        axis.text.y = element_text( size = 0),
+        axis.title.x = element_text( size = 20),
+        axis.title.y = element_text( size = 0),
+        legend.position = "none")
+
+auto3 = autoplot(pca_3, data = covid_3_scale_hc, colour = "cluster",size = 3,
+           main = "(C) PCA for covid 3 data set") + 
+  scale_color_discrete(name = "Cluster", labels=c("Cluster 1","Cluster 2","Cluster 3")) +
+  labs(x = "Comp.1", y = "Comp.2") +
+  theme_bw() +
+  theme(plot.title = element_text(size = 26, face = "bold"),
+        axis.text.x = element_text( size = 20),
+        axis.text.y = element_text( size = 0),
+        axis.title.x = element_text( size = 20),
+        axis.title.y = element_text( size = 0),
+        legend.title = element_text(size=20),
+        legend.text = element_text(size=20),
+        legend.position = "bottom")
+
+auto4 = autoplot(pca_4, data = covid_4_scale_hc, colour = "cluster",size = 3,
+           main = "(D) PCA for covid 4 data set") + 
+  scale_color_discrete(name = "Cluster", labels=c("Cluster 1","Cluster 2","Cluster 3")) +
+  labs(x = "Comp.1", y = "Comp.2") +
+  theme_bw() +
+  theme(plot.title = element_text(size = 26, face = "bold"),
+        axis.text.x = element_text( size = 20),
+        axis.text.y = element_text( size = 0),
+        axis.title.x = element_text( size = 20),
+        axis.title.y = element_text( size = 0),
+        legend.position = "none")
+
+auto5 = autoplot(pca_5, data = covid_5_scale_hc, colour = "cluster",size = 3,
+           main = "(E) PCA for covid 5 data set") +
+  scale_color_discrete(name = "Cluster", labels=c("Cluster 1","Cluster 2","Cluster 3")) +
+  labs(x = "Comp.1", y = "Comp.2") +
+  theme_bw() +
+  theme(plot.title = element_text(size = 26, face = "bold"),
+        axis.text.x = element_text( size = 20),
+        axis.text.y = element_text( size = 0),
+        axis.title.x = element_text( size = 20),
+        axis.title.y = element_text( size = 0),
+        legend.position = "none")
+  
+
+auto1+auto2+auto3+auto4+auto5+plot_layout(ncol = 5)
+
+```
+
